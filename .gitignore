@@ -3,3 +3,5 @@ matlab_figz/
 figs/
 models_full_docstrings.py
 data_test.py
+.DS_Store
+__pycache__/
