@@ -22,31 +22,44 @@ def parse_python(num_cells, time_range, time_bin):
     summed_spikes = {}
     for i in range(num_cells):
         flat_spikes = np.hstack(spikes[i]).astype(int)
-        flat_spikes = flat_spikes[flat_spikes<=1600]
+        flat_spikes = flat_spikes[flat_spikes<=2000]
+        flat_spikes = flat_spikes[flat_spikes>=400]
+
         unique, counts = np.unique(flat_spikes, return_counts = True)
         summed_spikes[i] = counts
-
     # creating binned spikes array
-    #binned_spikes = {}
-    binned_spikes = np.zeros((num_cells, num_trials[0], int(time_range_ms[1]-time_range_ms[0]/time_bin_ms)))
+    binned_spikes = {}
+    #binned_spikes = np.zeros((num_cells, num_trials[0], int(time_range_ms[1]-time_range_ms[0]/time_bin_ms)))
     for cell in range(num_cells):
-        #binned_spikes[cell] = np.zeros((num_trials[cell], int(time_range_ms[1]-time_range_ms[0]/time_bin_ms)))
+        binned_spikes[cell] = np.zeros((num_trials[cell], int(time_range_ms[1]-time_range_ms[0]/time_bin_ms)))
+        #binned_spikes[cell] = np.zeros((num_trials[cell], 2400))
+
         for trial_index, trial in enumerate(spikes[cell]):
             for time in trial:
-                if time <= time_range_ms[1]:
-                    binned_spikes[cell][trial_index][int(time)] = 1
+                if time < time_range_ms[1] and time >= time_range_ms[0]:
+                    binned_spikes[cell][trial_index][int(time-time_range_ms[0])] = 1
+                    #binned_spikes[cell][trial_index][int(time)] = 1
 
+    sum_spike_new = {}
+    for cell in range(num_cells):
+        sum_spike_new[cell] = np.zeros((int(time_range_ms[1]-time_range_ms[0]/time_bin_ms)))
+        for trial in range(num_trials[cell]):
+            for time in range(binned_spikes[cell][trial].shape[0]):
+                sum_spike_new[cell][time] += binned_spikes[cell][trial][time]
     conditions_dict = {}
-    conditions_dict[1] = np.zeros((500, num_trials[0]))
-    conditions_dict[2] = np.zeros((500, num_trials[0]))
-    conditions_dict[3] = np.zeros((500, num_trials[0]))
-    conditions_dict[4] = np.zeros((500, num_trials[0]))
-
     # associating trial and conditions
-    for i in range(conditions.shape[0]):
-        for v in range(num_trials[0]):
-            value = conditions[i][v]
-            if value:
-                conditions_dict[value][i][v] = 1
+    for cell in range(num_cells):
+        cond = conditions[cell][0:num_trials[cell]]
+        conditions_dict[1, cell] = np.zeros([num_trials[cell]])
+        conditions_dict[2, cell] = np.zeros([num_trials[cell]])
+        conditions_dict[3, cell] = np.zeros([num_trials[cell]])
+        conditions_dict[4, cell] = np.zeros([num_trials[cell]])
 
-    return summed_spikes, binned_spikes, conditions_dict
+        for trial, condition in enumerate(cond):
+            if condition:
+                conditions_dict[condition, cell][trial] = 1
+
+    return sum_spike_new, binned_spikes, conditions_dict, spikes
+
+  
+

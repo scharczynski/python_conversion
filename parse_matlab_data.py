@@ -63,7 +63,8 @@ def import_data():
         for i in range(binned_spikes.shape[2]): #per time slice
             for j in range(binned_spikes.shape[1]): #per trial
             # print (i,j)
-                summed_spikes[c][i] = summed_spikes[c][i] + binned_spikes[c][j][i]
+                summed_spikes[c][i] = summed_spikes[c][i] + \
+                    binned_spikes[c][j][i]
 
 
     # plt.plot(scipy.ndimage.gaussian_filter(sum, 45))
