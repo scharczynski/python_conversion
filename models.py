@@ -29,14 +29,9 @@ class Model(object):
     ----------
     spikes : numpy.ndarray
         Array of binary spike train data, of dimension (trials × time).
-    time_low : float 
-        Time, in seconds, beginning the window of interest.
-    time_high : float
-        Time, in seconds, ending the window of interest.
-    time_bin : float
-        Time, in seconds, which describes the size of bins spike data is collected into.
-    x0 : list
-        List of initial guesses for the L-BFGS-B optimization algorithm
+    time_info : TimeInfo 
+        Object that holds timing information including the beginning and end of the region
+        of interest and the time bin. All in seconds.
     bounds : tuple 
         Tuple of length number of paramters for the given model, setting upper and lower 
         bounds on parameters
@@ -48,6 +43,11 @@ class Model(object):
     bounds : tuple 
         Tuple of length number of paramters for the given model, setting upper and lower 
         bounds on parameters.
+    time_info : TimeInfo 
+        Object that holds timing information including the beginning and end of the region
+        of interest and the time bin. All in seconds.
+    total_bins : int
+        Calculated value determining total time bins analyzed.
     t : numpy.ndarray
         Array of timeslices of size specified by time_low, time_high and time_bin.
     fit : list
@@ -61,16 +61,17 @@ class Model(object):
         
     """
 
-    def __init__(self, cell_no, spikes, time_info, bounds):
-        self.cell_no = cell_no
+    def __init__(self, spikes, time_info, bounds):
         self.spikes = spikes   
         self.bounds = bounds
-        total_bins  = ((time_info.time_high - time_info.time_low) /  (time_info.time_bin))
-        self.t = np.linspace(time_info.time_low, time_info.time_high, total_bins)
+        self.time_info = time_info
+        self.total_bins  = ((time_info.time_high - time_info.time_low) /  (time_info.time_bin))
+        self.t = np.linspace(time_info.time_low, time_info.time_high, self.total_bins)
         self.fit = None
         self.fun = None
         self.lb = [x[0] for x in bounds]
         self.ub = [x[1] for x in bounds]
+        
     def fit_params(self):
         """Fit model paramters using Particle Swarm Optimization then SciPy's minimize.
 
@@ -93,13 +94,6 @@ class Model(object):
             bounds=self.bounds, 
             options={'disp': False}
             )
-        # options = {'c1': 0.5, 'c2': 0.3, 'w': 0.9}
-        # optimizer = ps.single.GlobalBestPSO(n_particles=10, dimensions=4, options=options)
-        # best_cost, best_pos = optimizer.optimize(self.pyswarms_funct, iters=100, verbose=3, print_step=25, t=self.t)
-        # self.fit = best_pos
-        # self.fun = best_cost
-        # x0 = np.asarray([0.1,0.1,0.1, 0.1, ])
-        # second_pass_res = minimize(self.build_function, self.x0, method='L-BFGS-B', bounds=self.bounds, options={'disp': False})
         self.fit = second_pass_res.x
         self.fun = second_pass_res.fun
         return (self.fit, self.fun)
@@ -147,26 +141,12 @@ class Time(Model):
 
     """Model which contains a time dependent gaussian compenent and an offset parameter.
 
-    Parameters
-    ----------
-    spikes : numpy.ndarray
-        Array of binary spike train data, of dimension (trials × time).
-    time_low : float 
-        Time, in seconds, beginning the window of interest.
-    time_high : float
-        Time, in seconds, ending the window of interest.
-    time_bin : float
-        Time, in seconds, which describes the size of bins spike data is collected into.
-    x0 : list
-        List of initial guesses for the L-BFGS-B optimization algorithm
-    bounds : tuple 
-        Tuple of length number of paramters for the given model, setting upper and lower 
-        bounds on parameters
-
     Attributes
     ----------
     name : string
         Human readable string describing the model.
+    num_params : int
+        Integer signifying the number of model parameters.
     ut : float
         Mean of gaussian distribution.
     st : float
@@ -178,96 +158,31 @@ class Time(Model):
 
     """
 
-    def __init__(self, cell_no, spikes, time_info, bounds):
-        super().__init__(cell_no, spikes, time_info, bounds)
-        self.name = "Time"
+    def __init__(self, spikes, time_info, bounds):
+        super().__init__(spikes, time_info, bounds)
+        self.name = "time"
+        self.num_params = 4
         self.ut = None
         self.st = None
         self.a = None
         self.o = None
-        self.x0 = [0.1, 0.1, 0.1, 0.01]
-
-    # def compute_funct(self, x):
-    #     a, ut, st, o = x[0], x[1], x[2], x[3]
-    #     T = a*np.exp(-np.power(self.t - ut, 2.) / (2 * np.power(st, 2.)))
-    #     res = np.sum(self.spikes*(-np.log(o+T))+(1-self.spikes)*(-np.log(1-(o+T))))
-    #     if isnan(res):
-    #         print("is nan     ")
-    #         print(T)
-    #         print(a, ut, st, o)
-
-    #     # return np.sum(self.spikes*(-np.log(o+T))+(1-self.spikes)*(-np.log(1-(o+T))))
-    #     return res
-
-    def pyswarms_funct(self, x, t):
-        a, ut, st, o = x[:,0], x[:,1], x[:,2], x[:,3]
-        self.function = ((a*np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.)))) + o)
-        res = np.sum(self.spikes*(-np.log(self.function)) + (1-self.spikes)*(-np.log(1-(self.function))))
-        return res
 
     def build_function(self, x):
         a, ut, st, o = x[0], x[1], x[2], x[3]
         self.function = ((a*np.exp(-np.power(self.t - ut, 2.) / (2 * np.power(st, 2.)))) + o)
-        # print(a, ut, st, o)
-        # print(a*np.exp(-np.power(0 - ut, 2.) / ((2 * np.power(st, 2.))) + o))
-        # if any(np.where(self.function==0)[0]):
-        #     print ("Zero")
-        #     print (np.where(self.function==0)[0].size)
-        #     print(np.where(self.function==0)[0])
-        #     print(a, ut, st, o)
-        # if any(np.where(self.function==1)[0]):
-        #     print ("One")
-        #     print (np.where(self.function==1)[0].size)
-        #     print (np.where(self.function==1)[0])
-        #     print(a, ut, st, o)
-
-        # if any(np.where(self.function < 0)[0]):
-        #     print ("Negative")
-        #     print (np.where(self.function<0)[0].size)
-        #     print (np.where(self.function<0)[0])
-        #     print(a,ut,st,o)
         res = np.sum(self.spikes*(-np.log(self.function)) + (1-self.spikes)*(-np.log(1-(self.function))))
-        # return np.sum(self.spikes*(-np.log(self.function))+(1-self.spikes)*(-np.log(1-(self.function))))
         return res
 
     def fit_params(self):
         super().fit_params()
-        self.a = self.fit[0]
-        self.ut = self.fit[1]
-        self.st = self.fit[2]
-        self.o = self.fit[3]
         return (self.fit, self.fun)
 
-    # def build_objective(self, x):
-    #     return 
-    # def fit_params(self):
+    def update_params(self):
+        self.ut = self.fit[0]
+        self.st = self.fit[1]
+        self.a = self.fit[2]
+        self.o = self.fit[3]
 
-    #     fits = minimize(self.compute_funct, self.x0, method='L-BFGS-B', bounds=self.bounds, options={'xtol': 1e-8, 'disp': True})
-
-    #     # self.fit = fits
-    #     # self.fun = function_value
-    #     self.fit = fits.x
-    #     self.fun = fits.fun
-
-    #     return fits.x, fits.fun
-    #     # return fits, function_value
-
-    # def fit_params_pso(self):
-    #     fits, function_value = pso(self.compute_funct, self.lb, self.ub, maxiter=600)
-    #     # fits, function_value = pso(self.compute_funct, self.lb, self.ub, maxiter=600, f_ieqcons=self.pso_con)
-
-    #     fits = minimize(self.compute_funct, fits, method='L-BFGS-B', bounds=self.bounds, options={'disp': False})
-
-    #     fits = minimize(self.compute_funct, self.x0, method='L-BFGS-B', bounds=self.bounds, options={'disp': False})
-    #     fits_pso, fun_pso = pso(self.compute_funct, self.lb, self.ub, maxiter=600, f_ieqcons=self.pso_con)
-    #     if fun_pso < fits.fun:
-    #         self.fit = fits_pso
-    #         self.fun = fun_pso
-    #     else:
-    #         self.fit = fits.x
-    #         self.fun = fits.fun
-
-    #     return fits.x, fits.fun
 
     def pso_con(self, x):
         return 1 - (x[0] + x[3])
@@ -275,8 +190,11 @@ class Time(Model):
     def plot_fit(self):
         if self.fit is None:
             raise ValueError("fit not yet computed")
-
-        #a, ut, st, o = self.fit[0], self.fit[1], self.fit[2], self.fit[3]
+        else:
+            self.a = self.fit[0]
+            self.ut = self.fit[1]
+            self.st = self.fit[2]
+            self.o = self.fit[3]
         fun = (self.a*np.exp(-np.power(self.t - self.ut, 2.) / (2 * np.power(self.st, 2.))) + self.o)
         plt.plot(self.t, fun)
 
@@ -286,36 +204,22 @@ class Const(Model):
 
     """Model which contains only a single offset parameter.
 
-    Parameters
-    ----------
-    spikes : numpy.ndarray
-        Array of binary spike train data, of dimension (trials × time).
-    time_low : float 
-        Time, in seconds, beginning the window of interest.
-    time_high : float
-        Time, in seconds, ending the window of interest.
-    time_bin : float
-        Time, in seconds, which describes the size of bins spike data is collected into.
-    x0 : list
-        List of initial guesses for the L-BFGS-B optimization algorithm
-    bounds : tuple 
-        Tuple of length number of paramters for the given model, setting upper and lower 
-        bounds on parameters
-
     Attributes
     ----------
     name : string
         Human readable string describing the model.
     o : float
         Additive offset of distribution.
+    num_params : int
+        Integer signifying the number of model parameters.
 
     """
 
-    def __init__(self, cell_no, spikes, time_info, bounds):
-        super().__init__(cell_no, spikes, time_info, bounds)
+    def __init__(self, spikes, time_info, bounds):
+        super().__init__(spikes, time_info, bounds)
         self.o = None
-        self.name  = "Constant"
-        self.x0 = [0.001]
+        self.name  = "constant"
+        self.num_params = 1
 
     def build_function(self, x):
         o = x[0]
@@ -330,6 +234,8 @@ class Const(Model):
         return 1 - x
         
     def plot_fit(self):
+        if self.fit is None:
+            raise ValueError("fit not yet computed")
         plt.axhline(y=self.fit, color='r', linestyle='-')
 
 class CatSetTime(Model):
@@ -338,19 +244,6 @@ class CatSetTime(Model):
 
     Parameters
     ----------
-    spikes : numpy.ndarray
-        Array of binary spike train data, of dimension (trials × time).
-    time_low : float 
-        Time, in seconds, beginning the window of interest.
-    time_high : float
-        Time, in seconds, ending the window of interest.
-    time_bin : float
-        Time, in seconds, which describes the size of bins spike data is collected into.
-    x0 : list
-        List of initial guesses for the L-BFGS-B optimization algorithm
-    bounds : tuple 
-        Tuple of length number of paramters for the given model, setting upper and lower 
-        bounds on parameters
     time_params : list
         List of gaussian parameters from a previous time-only fit.
     conditions : dict (int: numpy.ndarray of int)
@@ -379,11 +272,10 @@ class CatSetTime(Model):
 
     """
 
-    def __init__(self, cell_no, spikes, time_low, time_high, time_bin, bounds, time_params, conditions, pairs):
-        super().__init__(cell_no, spikes, time_low, time_high, time_bin, bounds)
-        #REWRITE TO INCLUDE CELL NO
+    def __init__(self, spikes, time_info, bounds, time_params, conditions, pairs, num_trials):
+        super().__init__(spikes, time_info, bounds)
         self.pairs = pairs
-        self.t = np.tile(self.t, (1064, 1)) 
+        self.t = np.tile(self.t, (num_trials, 1)) 
         self.conditions = conditions
         self.ut = time_params[1]
         self.st = time_params[2]
@@ -396,8 +288,8 @@ class CatSetTime(Model):
         a1, a2 = x[1], x[2]
         pair_1 = self.pairs[0]
         pair_2 = self.pairs[1]
-        c1 = self.conditions[pair_1[0], self.cell_no] + self.conditions[pair_1[1], self.cell_no]
-        c2 = self.conditions[pair_2[0], self.cell_no] + self.conditions[pair_2[1], self.cell_no]
+        c1 = self.conditions[pair_1[0]] + self.conditions[pair_1[1]]
+        c2 = self.conditions[pair_2[0]]+ self.conditions[pair_2[1]]
 
         big_t = (a1 * c1 * np.exp(-np.power(self.t.T - ut, 2.) / (2 * np.power(st, 2.)))) + (
             a2 * c2 * np.exp(-np.power(self.t.T - ut, 2.) / (2 * np.power(st, 2.))))
@@ -407,20 +299,17 @@ class CatSetTime(Model):
         return result
 
     def fit_params(self):
+        super().fit_params()
+        self.o = self.fit[0]
+        self.a1 = self.fit[1]
+        self.a2 = self.fit[2]
 
-        x0 = [0.1,0.1,0.1]
-
-        bound = ((10**-10, 0.2), (0, 0.2), (0, 0.2))
-
-        fits = minimize(self.compute_funct, x0, args=(pairs), method='L-BFGS-B', bounds=bound, options={'disp': True})
-
-
-        return fits.x, fits.fun
+        return self.fit, self.fun
 
     def plot_fit(self, fit):
-        ut, st, o = self.ut, self.st, fit[0]
-        a1, a2 =  fit[1], fit[2]
-        t = np.linspace(0, 1.6, 1600)
+        ut, st, o = self.ut, self.st, self.o
+        a1, a2 =  self.a1, self.a2
+        t = np.linspace(self.time_info.time_low, self.time_info.time_high, self.total_bins)
         fun = (a1 * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.))) + (
             a2 * np.exp(-np.power(t - ut, 2) / (2 * np.power(st, 2.))))) + o
 
@@ -436,19 +325,6 @@ class CatTime(Model):
 
     Parameters
     ----------
-    spikes : numpy.ndarray
-        Array of binary spike train data, of dimension (trials × time).
-    time_low : float 
-        Time, in seconds, beginning the window of interest.
-    time_high : float
-        Time, in seconds, ending the window of interest.
-    time_bin : float
-        Time, in seconds, which describes the size of bins spike data is collected into.
-    x0 : list
-        List of initial guesses for the L-BFGS-B optimization algorithm
-    bounds : tuple 
-        Tuple of length number of paramters for the given model, setting upper and lower 
-        bounds on parameters
     time_params : list
         List of gaussian parameters from a previous time-only fit.
     conditions : dict (int: numpy.ndarray of int)
@@ -481,11 +357,10 @@ class CatTime(Model):
 
     """
 
-    def __init__(self, cell_no, spikes, time_info, bounds, time_params, conditions):
-        super().__init__(cell_no, spikes, time_info, bounds)
-        self.name = "Category-Time"
-        #REWRITE TO CONSIDER TRIALS PER CELL
-        self.t = np.tile(self.t, (1064, 1))
+    def __init__(self, spikes, time_info, bounds, time_params, conditions, num_trials):
+        super().__init__(spikes, time_info, bounds)
+        self.name = "category_time"
+        self.t = np.tile(self.t, (num_trials, 1))
         self.conditions = conditions
         self.ut = time_params[1]
         self.st = time_params[2]
@@ -495,50 +370,46 @@ class CatTime(Model):
         self.a3 = None
         self.a4 = None
         self.bounds = bounds
+        self.num_params = 7
 
     def build_function(self, x):
-        #REWRITE TO CONSIDER CELL_NO
-        c1 = self.conditions[1, self.cell_no]
-        c2 = self.conditions[2, self.cell_no]
-        c3 = self.conditions[3, self.cell_no]
-        c4 = self.conditions[4, self.cell_no]
+        c1 = self.conditions[1]
+        c2 = self.conditions[2]
+        c3 = self.conditions[3]
+        c4 = self.conditions[4]
+
         ut, st, o = self.ut, self.st, x[0]
         a1, a2, a3, a4 = x[1], x[2], x[3], x[4]
 
-        big_t = a1 * c1 * np.exp(-np.power(self.t.T - ut, 2.) / (2 * np.power(st, 2.))) + (
-            a2 * c2 * np.exp(-np.power(self.t.T - ut, 2.) / (2 * np.power(st, 2.))) + (
-                a3 * c3 * np.exp(-np.power(self.t.T - ut, 2.) / (2 * np.power(st, 2.))) + (
-                    a4 * c4 * np.exp(-np.power(self.t.T - ut, 2.) / (2 * np.power(st, 2.))))))
+        big_t = (a1 * c1 * np.exp(-np.power(self.t.T - ut, 2.) / (2 * np.power(st, 2.)))) + (
+            a2 * c2 * np.exp(-np.power(self.t.T - ut, 2.) / (2 * np.power(st, 2.)))) + (
+                a3 * c3 * np.exp(-np.power(self.t.T - ut, 2.) / (2 * np.power(st, 2.)))) + (
+                    a4 * c4 * np.exp(-np.power(self.t.T - ut, 2.) / (2 * np.power(st, 2.))))
+
 
         return np.sum(self.spikes*(-np.log(o+big_t.T))+(1-self.spikes)*(-np.log(1-(o+big_t.T))))
 
     def fit_params(self):
         super().fit_params()
+        return self.fit, self.fun
+    
+    def update_params(self):
         self.o = self.fit[0]
         self.a1 = self.fit[1]
         self.a2 = self.fit[2]
         self.a3 = self.fit[3]
         self.a4 = self.fit[4]
 
-        return self.fit, self.fun
 
-    
-    def fit_params_pso(self):
-        fits, function_value = pso(self.compute_funct, self.lb, self.ub, maxiter=100, f_ieqcons=self.pso_con)
-        fits = minimize(self.compute_funct, fits, method='L-BFGS-B', bounds=self.bounds, options={'xtol': 1e-8, 'disp': True})
-        self.fit = fits.x
-        self.fun = fits.fun
-        return fits.x, fits.fun
-        
     def pso_con(self, x):
  
         return 1 - (x[0] + x[1] + x[2] + x[3] + x[4])
 
     def plot_fit(self):
-        ut, st, o = self.ut, self.st, self.fit[0]
-        a1, a2, a3, a4 = self.fit[1], self.fit[2], self.fit[3], self.fit[4]
-        #plt.subplot(2,1,1)
-        t = np.linspace(0, 1.6, 1600)
+        ut, st, o = self.ut, self.st, self.o
+        a1, a2, a3, a4 = self.a1, self.a2, self.a3, self.a4
+        t = np.linspace(self.time_info.time_low, self.time_info.time_high, self.total_bins)
+
         fun = (a1 * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.))) + (
             a2 * np.exp(-np.power(t - ut, 2) / (2 * np.power(st, 2.))) + (
                 a3 * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.))) + (
@@ -547,11 +418,13 @@ class CatTime(Model):
 
         plt.plot(t, fun)
 
-    def plot_cat_fit(self, fit, cat):
-        ut, st, o = self.ut, self.st, fit[0]
-        cat_coeff = fit[cat]
-
+    def plot_cat_fit(self):
+        ut, st, o = self.ut, self.st, self.o
         t = np.linspace(0, 1.6, 1600)
+        num_categories = len(self.conditions.keys())
+        for category in range(num_categories):
+            plt.subplot(2, num_categories, category)
+            plt.plot(self.fit[category] * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.))) + o)
 
         fun = (cat_coeff * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.)))) + o
 
@@ -605,19 +478,6 @@ class ConstCat(Model):
 
     Parameters
     ----------
-    spikes : numpy.ndarray
-        Array of binary spike train data, of dimension (trials × time).
-    time_low : float 
-        Time, in seconds, beginning the window of interest.
-    time_high : float
-        Time, in seconds, ending the window of interest.
-    time_bin : float
-        Time, in seconds, which describes the size of bins spike data is collected into.
-    x0 : list
-        List of initial guesses for the L-BFGS-B optimization algorithm
-    bounds : tuple 
-        Tuple of length number of paramters for the given model, setting upper and lower 
-        bounds on parameters
     conditions : dict (int: numpy.ndarray of int)
         Dictionary containing trial conditions per trial per cell.
 
@@ -625,6 +485,8 @@ class ConstCat(Model):
     ----------
     name : string
         Human readable string describing the model.
+    conditions : dict (int: numpy.ndarray of int)
+        Dictionary containing trial conditions per trial per cell.
     a1 : float
         Coefficient of category 1 gaussian distribution.
     a2 : float
@@ -636,8 +498,8 @@ class ConstCat(Model):
 
     """
 
-    def __init__(self, cell_no, spikes, time_low, time_high, time_bin, bounds, conditions):
-        super().__init__(cell_no, spikes, time_low, time_high, time_bin, bounds)
+    def __init__(self, spikes, time_low, time_high, time_bin, bounds, conditions):
+        super().__init__(spikes, time_low, time_high, time_bin, bounds)
         self.name = "Constant-Category"
         self.conditions = conditions
         self.a1 = None
@@ -646,10 +508,10 @@ class ConstCat(Model):
         self.a4 = None
 
     def build_function(self, x):
-        c1 = self.conditions[1, self.cell_no]
-        c2 = self.conditions[2, self.cell_no]
-        c3 = self.conditions[3, self.cell_no]
-        c4 = self.conditions[4, self.cell_no]
+        c1 = self.conditions[1]
+        c2 = self.conditions[2]
+        c3 = self.conditions[3]
+        c4 = self.conditions[4]
         a1, a2, a3, a4 = x[0], x[1], x[2], x[3]
         big_t = a1 * c1 + a2 * c2 + a3 * c3 + a4 * c4
         return np.sum(self.spikes.T*(-np.log(big_t))+(1-self.spikes.T)*(-np.log(1-(big_t))))
