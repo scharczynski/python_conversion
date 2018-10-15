@@ -130,7 +130,7 @@ class Model(object):
         """
         raise NotImplementedError("Must override pso_con")
 
-    def plot_fit(self):
+    def expose_fit(self):
         """Plot model fit.
 
         """
@@ -187,7 +187,7 @@ class Time(Model):
     def pso_con(self, x):
         return 1 - (x[0] + x[3])
 
-    def plot_fit(self):
+    def expose_fit(self):
         if self.fit is None:
             raise ValueError("fit not yet computed")
         else:
@@ -196,7 +196,7 @@ class Time(Model):
             self.st = self.fit[2]
             self.o = self.fit[3]
         fun = (self.a*np.exp(-np.power(self.t - self.ut, 2.) / (2 * np.power(self.st, 2.))) + self.o)
-        plt.plot(self.t, fun)
+        return fun
 
 
 
@@ -233,11 +233,11 @@ class Const(Model):
     def pso_con(self, x):
         return 1 - x
         
-    def plot_fit(self):
+    def expose_fit(self):
         if self.fit is None:
             raise ValueError("fit not yet computed")
-        plt.axhline(y=self.fit, color='r', linestyle='-')
-
+        return self.fit
+        
 class CatSetTime(Model):
 
     """Model which contains seperate time-dependent gaussian terms per each given category sets.

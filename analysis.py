@@ -17,6 +17,7 @@ import models
 import math
 from time_info import TimeInfo
 import sys
+from cellplot import CellPlot
 
 
 class AnalyzeCell(object):
@@ -127,37 +128,6 @@ class AnalyzeCell(object):
                                 llmax, 
                                 delta_params)
 
-    #it might be better to kick out these plot methods into a plotting class
-    def plot_comparison(self, model_min, model_max):
-        fig = plt.figure()
-        model_min.plot_fit()
-        plt.plot(np.linspace(0.4, 2.0, 1600), scipy.signal.savgol_filter((self.summed_spikes/int(self.num_trials/self.subsample)), 251, 3))
-        model_max.plot_fit()
-        
-        fig_name = "figs/cell_%d_" + model_min.name + "_" + model_max.name + ".png"
-        fig.savefig(fig_name % self.cell_no)
-
-    def plot_cat_fit(self, model):
-        ut, st, o = model.ut, model.st, model.o
-        t = np.linspace(0.4, 2.0, 1600)
-        num_conditions = len(model.conditions.keys())
-        for condition in range(num_conditions):
-            print(model.fit[condition])
-            plt.subplot(2, num_conditions, condition+1)
-            plt.plot(t, (model.fit[condition] * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.)))))
-            #currently subtracting o, not sure if needed
-            plt.plot(t, scipy.signal.savgol_filter((self.summed_spikes_condition[condition])/int(self.num_trials/self.subsample), 251, 3))
-
-        plt.show()
-
-    def plot_raster(self, condition=0):
-        if condition:
-            ax = sns.heatmap(self.binned_spikes.T * self.conditions[condition])
-        else:
-            ax = sns.heatmap(self.binned_spikes.T)
-
-    
-
     def iterate_fits(self, model, n):
         iteration = 0
         #fun_min = math.inf
@@ -254,11 +224,12 @@ class AnalyzeAll(object):
 
     def compare_models(self, model_min, model_max):
         for cell in range(self.no_cells):
+            plotter = CellPlot(self.analysis_dict[cell])
             min_model = self.model_fits[model_min][cell]
             max_model = self.model_fits[model_max][cell]
             print(self.analysis_dict[cell].compare_models(min_model, max_model))
-            self.analysis_dict[cell].plot_comparison(min_model, max_model)
-            self.analysis_dict[cell].plot_cat_fit(max_model)
+            plotter.plot_comparison(min_model, max_model)
+            #self.analysis_dict[cell].plot_cat_fit(max_model)
 
 
 path_to_data = '/Users/stevecharczynski/workspace/python_ready_data'
@@ -267,7 +238,7 @@ data_processor = DataProcessor(path_to_data, time_info, 3, 4)
 sns.set()
 # analyze_all = AnalyzeAll(1, data_processor, ["time", "category_time"], 0.25)
 # analyze_all.compare_models("time", "category_time")
-# analyze_all = AnalyzeAll(2, data_processor, ["time", "constant"], 0.25)
-# analyze_all.compare_models("constant", "time")
-analyze_all = AnalyzeAll(2, data_processor, ["time", "category_time"], 0.25)
-analyze_all.compare_models("time", "category_time")
+analyze_all = AnalyzeAll(2, data_processor, ["time", "constant"], 0.25)
+analyze_all.compare_models("constant", "time")
+# analyze_all = AnalyzeAll(2, data_processor, ["time", "category_time"], 0.25)
+# analyze_all.compare_models("time", "category_time")
