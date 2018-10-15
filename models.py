@@ -1,6 +1,6 @@
 """Module containing all model classes.
 
-    These models are currently based off those used in Compressed timeline of recent experience in monkey lPFC 
+    These models are currently based off those used in Compressed timeline of recent experience in monkey lPFC
     (Tiganj et al. 2018)
 
     As a consequence, models currently will be largely coupled to the specific reference experiement.
@@ -29,21 +29,21 @@ class Model(object):
     ----------
     spikes : numpy.ndarray
         Array of binary spike train data, of dimension (trials × time).
-    time_info : TimeInfo 
+    time_info : TimeInfo
         Object that holds timing information including the beginning and end of the region
         of interest and the time bin. All in seconds.
-    bounds : tuple 
-        Tuple of length number of paramters for the given model, setting upper and lower 
+    bounds : tuple
+        Tuple of length number of paramters for the given model, setting upper and lower
         bounds on parameters
 
     Attributes
     ----------
     spikes : numpy.ndarray
         Array of binary spike train data, of dimension (trials × time).
-    bounds : tuple 
-        Tuple of length number of paramters for the given model, setting upper and lower 
+    bounds : tuple
+        Tuple of length number of paramters for the given model, setting upper and lower
         bounds on parameters.
-    time_info : TimeInfo 
+    time_info : TimeInfo
         Object that holds timing information including the beginning and end of the region
         of interest and the time bin. All in seconds.
     total_bins : int
@@ -58,20 +58,24 @@ class Model(object):
         List of parameter lower bounds.
     ub : list
         List of parameter upper bounds.
-        
+
     """
 
     def __init__(self, spikes, time_info, bounds):
-        self.spikes = spikes   
+        self.spikes = spikes
         self.bounds = bounds
         self.time_info = time_info
-        self.total_bins  = ((time_info.time_high - time_info.time_low) /  (time_info.time_bin))
-        self.t = np.linspace(time_info.time_low, time_info.time_high, self.total_bins)
+        self.total_bins = (
+            (time_info.time_high - time_info.time_low) / (time_info.time_bin))
+        self.t = np.linspace(
+            time_info.time_low,
+            time_info.time_high,
+            self.total_bins)
         self.fit = None
         self.fun = None
         self.lb = [x[0] for x in bounds]
         self.ub = [x[1] for x in bounds]
-        
+
     def fit_params(self):
         """Fit model paramters using Particle Swarm Optimization then SciPy's minimize.
 
@@ -82,18 +86,18 @@ class Model(object):
 
         """
         fit_pso, fun_pso = pso(
-            self.build_function, 
-            self.lb, self.ub, 
-            maxiter=800, 
+            self.build_function,
+            self.lb, self.ub,
+            maxiter=800,
             f_ieqcons=self.pso_con
-            )
+        )
         second_pass_res = minimize(
-            self.build_function, 
-            fit_pso, 
+            self.build_function,
+            fit_pso,
             method='L-BFGS-B',
-            bounds=self.bounds, 
+            bounds=self.bounds,
             options={'disp': False}
-            )
+        )
         self.fit = second_pass_res.x
         self.fun = second_pass_res.fun
         return (self.fit, self.fun)
@@ -105,7 +109,7 @@ class Model(object):
         ----------
         x : numpy.ndarray
             Contains optimization parameters at intermediate steps.
-        
+
         Returns
         -------
         float
@@ -119,9 +123,9 @@ class Model(object):
 
         Note
         ----
-        Constraints for pyswarm module take the form of an array of equations 
-        that sum to zero.    
-    
+        Constraints for pyswarm module take the form of an array of equations
+        that sum to zero.
+
         Parameters
         ----------
         x : numpy.ndarray
@@ -169,8 +173,10 @@ class Time(Model):
 
     def build_function(self, x):
         a, ut, st, o = x[0], x[1], x[2], x[3]
-        self.function = ((a*np.exp(-np.power(self.t - ut, 2.) / (2 * np.power(st, 2.)))) + o)
-        res = np.sum(self.spikes*(-np.log(self.function)) + (1-self.spikes)*(-np.log(1-(self.function))))
+        self.function = (
+            (a * np.exp(-np.power(self.t - ut, 2.) / (2 * np.power(st, 2.)))) + o)
+        res = np.sum(self.spikes * (-np.log(self.function)) +
+                     (1 - self.spikes) * (-np.log(1 - (self.function))))
         return res
 
     def fit_params(self):
@@ -183,7 +189,6 @@ class Time(Model):
         self.a = self.fit[2]
         self.o = self.fit[3]
 
-
     def pso_con(self, x):
         return 1 - (x[0] + x[3])
 
@@ -195,9 +200,9 @@ class Time(Model):
             self.ut = self.fit[1]
             self.st = self.fit[2]
             self.o = self.fit[3]
-        fun = (self.a*np.exp(-np.power(self.t - self.ut, 2.) / (2 * np.power(self.st, 2.))) + self.o)
+        fun = (self.a * np.exp(-np.power(self.t - self.ut, 2.) /
+                               (2 * np.power(self.st, 2.))) + self.o)
         return fun
-
 
 
 class Const(Model):
@@ -218,26 +223,28 @@ class Const(Model):
     def __init__(self, spikes, time_info, bounds):
         super().__init__(spikes, time_info, bounds)
         self.o = None
-        self.name  = "constant"
+        self.name = "constant"
         self.num_params = 1
 
     def build_function(self, x):
         o = x[0]
-        return np.sum(self.spikes*(-np.log(o)) + (1-self.spikes)*(-np.log(1-(o))))
+        return np.sum(self.spikes * (-np.log(o)) +
+                      (1 - self.spikes) * (-np.log(1 - (o))))
 
     def fit_params(self):
         super().fit_params()
         self.o = self.fit
         return (self.fit, self.fun)
-    
+
     def pso_con(self, x):
         return 1 - x
-        
+
     def expose_fit(self):
         if self.fit is None:
             raise ValueError("fit not yet computed")
         return self.fit
-        
+
+
 class CatSetTime(Model):
 
     """Model which contains seperate time-dependent gaussian terms per each given category sets.
@@ -253,7 +260,7 @@ class CatSetTime(Model):
     ----------
     t : numpy.ndarray
         Array of timeslices of size specified by time_low, time_high and time_bin.
-        This array is repeated a number of times equal to the amount of trials 
+        This array is repeated a number of times equal to the amount of trials
         this cell has.
     name : string
         Human readable string describing the model.
@@ -272,10 +279,18 @@ class CatSetTime(Model):
 
     """
 
-    def __init__(self, spikes, time_info, bounds, time_params, conditions, pairs, num_trials):
+    def __init__(
+            self,
+            spikes,
+            time_info,
+            bounds,
+            time_params,
+            conditions,
+            pairs,
+            num_trials):
         super().__init__(spikes, time_info, bounds)
         self.pairs = pairs
-        self.t = np.tile(self.t, (num_trials, 1)) 
+        self.t = np.tile(self.t, (num_trials, 1))
         self.conditions = conditions
         self.ut = time_params[1]
         self.st = time_params[2]
@@ -289,13 +304,13 @@ class CatSetTime(Model):
         pair_1 = self.pairs[0]
         pair_2 = self.pairs[1]
         c1 = self.conditions[pair_1[0]] + self.conditions[pair_1[1]]
-        c2 = self.conditions[pair_2[0]]+ self.conditions[pair_2[1]]
+        c2 = self.conditions[pair_2[0]] + self.conditions[pair_2[1]]
 
-        big_t = (a1 * c1 * np.exp(-np.power(self.t.T - ut, 2.) / (2 * np.power(st, 2.)))) + (
-            a2 * c2 * np.exp(-np.power(self.t.T - ut, 2.) / (2 * np.power(st, 2.))))
-                
+        big_t = (a1 * c1 * np.exp(-np.power(self.t.T - ut, 2.) / (2 * np.power(st, 2.)))) + \
+            (a2 * c2 * np.exp(-np.power(self.t.T - ut, 2.) / (2 * np.power(st, 2.))))
 
-        result = np.sum(self.spikes*(-np.log(o+big_t.T))+(1-self.spikes)*(-np.log(1-(o+big_t.T))))
+        result = np.sum(self.spikes * (-np.log(o + big_t.T)) +
+                        (1 - self.spikes) * (-np.log(1 - (o + big_t.T))))
         return result
 
     def fit_params(self):
@@ -308,8 +323,11 @@ class CatSetTime(Model):
 
     def plot_fit(self, fit):
         ut, st, o = self.ut, self.st, self.o
-        a1, a2 =  self.a1, self.a2
-        t = np.linspace(self.time_info.time_low, self.time_info.time_high, self.total_bins)
+        a1, a2 = self.a1, self.a2
+        t = np.linspace(
+            self.time_info.time_low,
+            self.time_info.time_high,
+            self.total_bins)
         fun = (a1 * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.))) + (
             a2 * np.exp(-np.power(t - ut, 2) / (2 * np.power(st, 2.))))) + o
 
@@ -334,7 +352,7 @@ class CatTime(Model):
     ----------
     t : numpy.ndarray
         Array of timeslices of size specified by time_low, time_high and time_bin.
-        This array is repeated a number of times equal to the amount of trials 
+        This array is repeated a number of times equal to the amount of trials
         this cell has.
     name : string
         Human readable string describing the model.
@@ -357,7 +375,14 @@ class CatTime(Model):
 
     """
 
-    def __init__(self, spikes, time_info, bounds, time_params, conditions, num_trials):
+    def __init__(
+            self,
+            spikes,
+            time_info,
+            bounds,
+            time_params,
+            conditions,
+            num_trials):
         super().__init__(spikes, time_info, bounds)
         self.name = "category_time"
         self.t = np.tile(self.t, (num_trials, 1))
@@ -381,18 +406,18 @@ class CatTime(Model):
         ut, st, o = self.ut, self.st, x[0]
         a1, a2, a3, a4 = x[1], x[2], x[3], x[4]
 
-        big_t = (a1 * c1 * np.exp(-np.power(self.t.T - ut, 2.) / (2 * np.power(st, 2.)))) + (
-            a2 * c2 * np.exp(-np.power(self.t.T - ut, 2.) / (2 * np.power(st, 2.)))) + (
-                a3 * c3 * np.exp(-np.power(self.t.T - ut, 2.) / (2 * np.power(st, 2.)))) + (
-                    a4 * c4 * np.exp(-np.power(self.t.T - ut, 2.) / (2 * np.power(st, 2.))))
+        big_t = (a1 * c1 * np.exp(-np.power(self.t.T - ut,2.) / (2 * np.power(st,2.)))) 
+            + (a2 * c2 * np.exp(-np.power(self.t.T - ut,2.) / (2 * np.power(st,2.)))) 
+                + (a3 * c3 * np.exp(-np.power(self.t.T - ut, 2.) / (2 * np.power(st,2.)))) 
+                    + (a4 * c4 * np.exp(-np.power(self.t.T - ut, 2.) / (2 * np.power(st, 2.))))
 
-
-        return np.sum(self.spikes*(-np.log(o+big_t.T))+(1-self.spikes)*(-np.log(1-(o+big_t.T))))
+        return np.sum(self.spikes * (-np.log(o + big_t.T)) +
+                      (1 - self.spikes) * (-np.log(1 - (o + big_t.T))))
 
     def fit_params(self):
         super().fit_params()
         return self.fit, self.fun
-    
+
     def update_params(self):
         self.o = self.fit[0]
         self.a1 = self.fit[1]
@@ -400,25 +425,25 @@ class CatTime(Model):
         self.a3 = self.fit[3]
         self.a4 = self.fit[4]
 
-
     def pso_con(self, x):
- 
+
         return 1 - (x[0] + x[1] + x[2] + x[3] + x[4])
 
     def plot_fit(self):
         ut, st, o = self.ut, self.st, self.o
         a1, a2, a3, a4 = self.a1, self.a2, self.a3, self.a4
-        t = np.linspace(self.time_info.time_low, self.time_info.time_high, self.total_bins)
+        t = np.linspace(
+            self.time_info.time_low,
+            self.time_info.time_high,
+            self.total_bins)
 
-        fun = (a1 * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.))) + (
-            a2 * np.exp(-np.power(t - ut, 2) / (2 * np.power(st, 2.))) + (
-                a3 * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.))) + (
-                    a4 * np.exp(-np.power(t - ut, 2) / (2 * np.power(st, 2.))))))) + o
-
+        fun = (a1 * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.))) 
+            + (a2 * np.exp(-np.power(t - ut, 2) / (2 * np.power(st, 2.))) 
+                + (a3 * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.))) 
+                    + (a4 * np.exp(-np.power(t - ut, 2) / (2 * np.power(st,2.))))))) + o
 
         plt.plot(t, fun)
 
-  
 
 class ConstCat(Model):
 
@@ -446,7 +471,14 @@ class ConstCat(Model):
 
     """
 
-    def __init__(self, spikes, time_low, time_high, time_bin, bounds, conditions):
+    def __init__(
+            self,
+            spikes,
+            time_low,
+            time_high,
+            time_bin,
+            bounds,
+            conditions):
         super().__init__(spikes, time_low, time_high, time_bin, bounds)
         self.name = "Constant-Category"
         self.conditions = conditions
@@ -462,7 +494,8 @@ class ConstCat(Model):
         c4 = self.conditions[4]
         a1, a2, a3, a4 = x[0], x[1], x[2], x[3]
         big_t = a1 * c1 + a2 * c2 + a3 * c3 + a4 * c4
-        return np.sum(self.spikes.T*(-np.log(big_t))+(1-self.spikes.T)*(-np.log(1-(big_t))))
+        return np.sum(self.spikes.T * (-np.log(big_t)) +
+                      (1 - self.spikes.T) * (-np.log(1 - (big_t))))
 
     def fit_params(self):
         super().fit_params()
@@ -472,7 +505,6 @@ class ConstCat(Model):
         self.a4 = self.fit[3]
 
         return self.fit, self.fun
-    
+
     def pso_con(self, x):
         return 1
-

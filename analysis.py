@@ -30,7 +30,7 @@ class AnalyzeCell(object):
         Integer signifying the cell being analyzed.
     data_processor : DataProcessor
         Object returned by data processing module that includes all relevent cell data.
-    
+
     Attributes
     ----------
     summed_spikes : numpy.ndarray
@@ -51,10 +51,11 @@ class AnalyzeCell(object):
         self.subsample = subsample
 
         if subsample:
-            self.num_trials = int(data_processor.num_trials[cell_no] * subsample)
+            self.num_trials = int(
+                data_processor.num_trials[cell_no] * subsample)
             sampled_trials = np.random.randint(
-                                            data_processor.num_trials[cell_no], 
-                                            size = self.num_trials)
+                data_processor.num_trials[cell_no],
+                size=self.num_trials)
             self.binned_spikes = data_processor.binned_spikes[cell_no][sampled_trials, :]
         else:
             self.num_trials = data_processor.num_trials[cell_no]
@@ -63,12 +64,12 @@ class AnalyzeCell(object):
         self.cell_no = cell_no
         self.summed_spikes = data_processor.summed_spikes[cell_no]
         self.summed_spikes_condition = data_processor.summed_spikes_condition[cell_no]
-        
+
         conditions_dict = data_processor.conditions_dict
 
-        #this may be better off as a utility function in python_data
+        # this may be better off as a utility function in python_data
         self.conditions = {}
-        for cond in range(1, data_processor.num_conditions+1):
+        for cond in range(1, data_processor.num_conditions + 1):
             self.conditions[cond] = conditions_dict[cond, cell_no]
             if subsample:
                 self.conditions[cond] = self.conditions[cond][sampled_trials]
@@ -76,15 +77,18 @@ class AnalyzeCell(object):
 
     def fit_all_models(self):
         return self.fit_time(), self.fit_category_time(), self.fit_constant()
- 
+
     def fit_time(self):
         n = 2
-        mean_delta = 0.10 * (self.time_info.time_high - self.time_info.time_low)
-        mean_bounds = ((self.time_info.time_low - mean_delta), (self.time_info.time_high + mean_delta))
-        bounds_t = ( (0.001, 1/n), mean_bounds, (0.01, 5.0), (10**-10, 1/n))
+        mean_delta = 0.10 * (self.time_info.time_high -
+                             self.time_info.time_low)
+        mean_bounds = (
+            (self.time_info.time_low - mean_delta),
+            (self.time_info.time_high + mean_delta))
+        bounds_t = ((0.001, 1 / n), mean_bounds, (0.01, 5.0), (10**-10, 1 / n))
 
         m_time = models.Time(
-            self.binned_spikes, 
+            self.binned_spikes,
             self.time_info,
             bounds_t)
 
@@ -96,7 +100,7 @@ class AnalyzeCell(object):
     def fit_constant(self):
         bounds_const = ((10**-10, 0.99),)
         m_constant = models.Const(
-            self.binned_spikes, 
+            self.binned_spikes,
             self.time_info,
             bounds_const)
         m_constant.fit_params()
@@ -106,9 +110,9 @@ class AnalyzeCell(object):
     def fit_category_time(self):
         bounds_ct = ((10**-10, 0.2), (0, 0.2), (0, 0.2), (0, 0.2), (0, 0.2))
         m_time_cat = models.CatTime(
-            self.binned_spikes,  
+            self.binned_spikes,
             self.time_info,
-            bounds_ct, 
+            bounds_ct,
             self.time_model.fit,
             self.conditions,
             self.num_trials
@@ -123,10 +127,10 @@ class AnalyzeCell(object):
         llmax = model_max.fun
         delta_params = model_max.num_params - model_min.num_params
         return self.hyp_rejection(
-                                0.05,
-                                llmin,
-                                llmax, 
-                                delta_params)
+            0.05,
+            llmin,
+            llmax,
+            delta_params)
 
     def iterate_fits(self, model, n):
         iteration = 0
@@ -139,13 +143,13 @@ class AnalyzeCell(object):
                 params_min = model.fit
                 iteration = 0
             else:
-                iteration += 1  
+                iteration += 1
         model.fit = params_min
         model.fun = fun_min
         return model
 
     def likelihood_ratio(self, llmin, llmax):
-        return(-2*(llmax-llmin))
+        return(-2 * (llmax - llmin))
 
     def hyp_rejection(self, p_threshold, llmin, llmax, inc_params):
         # print (llmin, llmax)
@@ -154,9 +158,10 @@ class AnalyzeCell(object):
         # print(self.time_model.build_function(self.time_model.fit))
         lr = self.likelihood_ratio(llmin, llmax)
         p = chi2.sf(lr, inc_params)
-        print (llmin, llmax, inc_params)
-        print ("p-value is: " + str(p))
+        print(llmin, llmax, inc_params)
+        print("p-value is: " + str(p))
         return p < p_threshold
+
 
 class AnalyzeAll(object):
 
@@ -169,9 +174,9 @@ class AnalyzeAll(object):
     data_processor : DataProcessor
         Object returned by data processing module that includes all relevent cell data.
     models : list of str
-        List of model names as strings to be used in analysis. 
+        List of model names as strings to be used in analysis.
         These must match the names used in "fit_x" methods.
-        
+
     Attributes
     ----------
     no_cells : int
@@ -179,7 +184,7 @@ class AnalyzeAll(object):
     data_processor : DataProcessor
         Object returned by data processing module that includes all relevent cell data.
     models : list of str
-        List of model names as strings to be used in analysis. 
+        List of model names as strings to be used in analysis.
         These must match the names used in "fit_x" methods.
     time_info : TimeInfo
         Object that holds timing information including the beginning and end of the region
@@ -204,7 +209,8 @@ class AnalyzeAll(object):
     def make_analysis(self):
         analysis_dict = {}
         for cell in range(self.no_cells):
-            analysis_dict[cell] = AnalyzeCell(cell, self.data_processor, self.subsample)
+            analysis_dict[cell] = AnalyzeCell(
+                cell, self.data_processor, self.subsample)
         return analysis_dict
 
     def fit_all(self):
@@ -214,7 +220,8 @@ class AnalyzeAll(object):
 
         for cell in range(self.no_cells):
             for model in self.models:
-                model_fits[model][cell] = getattr(self.analysis_dict[cell], "fit_" + model)()
+                model_fits[model][cell] = getattr(
+                    self.analysis_dict[cell], "fit_" + model)()
             # analysis.fit_time()
             # analysis.time_model.plot_fit()
             # print (analysis.time_model.fit)
@@ -227,9 +234,11 @@ class AnalyzeAll(object):
             plotter = CellPlot(self.analysis_dict[cell])
             min_model = self.model_fits[model_min][cell]
             max_model = self.model_fits[model_max][cell]
-            print(self.analysis_dict[cell].compare_models(min_model, max_model))
+            print(
+                self.analysis_dict[cell].compare_models(
+                    min_model, max_model))
             plotter.plot_comparison(min_model, max_model)
-            #self.analysis_dict[cell].plot_cat_fit(max_model)
+            # self.analysis_dict[cell].plot_cat_fit(max_model)
 
 
 path_to_data = '/Users/stevecharczynski/workspace/python_ready_data'
