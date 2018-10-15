@@ -418,59 +418,7 @@ class CatTime(Model):
 
         plt.plot(t, fun)
 
-    def plot_cat_fit(self):
-        ut, st, o = self.ut, self.st, self.o
-        t = np.linspace(0, 1.6, 1600)
-        num_categories = len(self.conditions.keys())
-        for category in range(num_categories):
-            plt.subplot(2, num_categories, category)
-            plt.plot(self.fit[category] * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.))) + o)
-
-        fun = (cat_coeff * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.)))) + o
-
-        plt.plot(t, fun) 
-
-    def plot_c1_fit(self, fit):
-        self.plot_cat_fit(fit, 1)
-
-    def plot_c2_fit(self, fit):
-        self.plot_cat_fit(fit, 2)
-
-    def plot_c3_fit(self, fit):
-        self.plot_cat_fit(fit, 3)
-
-    def plot_c4_fit(self, fit):
-        self.plot_cat_fit(fit, 4)
-
-    def plot_all(self, fit):
-        
-        plt.subplot(2, 2, 1)
-        self.plot_c1_fit(fit)
-
-        plt.subplot(2,2,2)
-        self.plot_c2_fit(fit)
-
-        plt.subplot(2,2,3)
-        self.plot_c3_fit(fit)
-
-        plt.subplot(2, 2, 4)
-        self.plot_c4_fit(fit)
-
-    def plot_raster(self, bin_spikes):
-        ax = sns.heatmap(bin_spikes)
-
-    def plot_raster_c1(self, bin_spikes):
-        ax1 = sns.heatmap(bin_spikes.T * self.c1)
-
-    def plot_raster_c2(self, bin_spikes):
-        ax2 = sns.heatmap(bin_spikes.T * self.c2)
-
-    def plot_raster_c3(self, bin_spikes):
-        ax3 = sns.heatmap(bin_spikes.T * self.c3)
-
-    def plot_raster_c4(self, bin_spikes):
-        ax4 = sns.heatmap(bin_spikes.T * self.c4)
-
+  
 
 class ConstCat(Model):
 

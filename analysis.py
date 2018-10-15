@@ -65,6 +65,7 @@ class AnalyzeCell(object):
         
         conditions_dict = data_processor.conditions_dict
 
+        #this may be better off as a utility function in python_data
         self.conditions = {}
         for cond in range(1, data_processor.num_conditions+1):
             self.conditions[cond] = conditions_dict[cond, cell_no]
@@ -126,6 +127,7 @@ class AnalyzeCell(object):
                                 llmax, 
                                 delta_params)
 
+    #it might be better to kick out these plot methods into a plotting class
     def plot_comparison(self, model_min, model_max):
         fig = plt.figure()
         model_min.plot_fit()
@@ -142,11 +144,19 @@ class AnalyzeCell(object):
         for condition in range(num_conditions):
             print(model.fit[condition])
             plt.subplot(2, num_conditions, condition+1)
-            plt.plot(t, model.fit[condition] * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.))))
+            plt.plot(t, (model.fit[condition] * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.)))))
             #currently subtracting o, not sure if needed
-            plt.plot(t, scipy.signal.savgol_filter(((self.summed_spikes_condition[condition]-o)/int(self.num_trials/self.subsample)), 251, 3))
+            plt.plot(t, scipy.signal.savgol_filter((self.summed_spikes_condition[condition])/int(self.num_trials/self.subsample), 251, 3))
 
         plt.show()
+
+    def plot_raster(self, condition=0):
+        if condition:
+            ax = sns.heatmap(self.binned_spikes.T * self.conditions[condition])
+        else:
+            ax = sns.heatmap(self.binned_spikes.T)
+
+    
 
     def iterate_fits(self, model, n):
         iteration = 0
@@ -259,5 +269,5 @@ sns.set()
 # analyze_all.compare_models("time", "category_time")
 # analyze_all = AnalyzeAll(2, data_processor, ["time", "constant"], 0.25)
 # analyze_all.compare_models("constant", "time")
-analyze_all = AnalyzeAll(3, data_processor, ["time", "category_time"], 0.25)
+analyze_all = AnalyzeAll(2, data_processor, ["time", "category_time"], 0.25)
 analyze_all.compare_models("time", "category_time")
