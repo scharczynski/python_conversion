@@ -406,10 +406,10 @@ class CatTime(Model):
         ut, st, o = self.ut, self.st, x[0]
         a1, a2, a3, a4 = x[1], x[2], x[3], x[4]
 
-        big_t = (a1 * c1 * np.exp(-np.power(self.t.T - ut,2.) / (2 * np.power(st,2.)))) 
-            + (a2 * c2 * np.exp(-np.power(self.t.T - ut,2.) / (2 * np.power(st,2.)))) 
-                + (a3 * c3 * np.exp(-np.power(self.t.T - ut, 2.) / (2 * np.power(st,2.)))) 
-                    + (a4 * c4 * np.exp(-np.power(self.t.T - ut, 2.) / (2 * np.power(st, 2.))))
+        big_t = (a1 * c1 * np.exp(-np.power(self.t.T - ut,2.) / (2 * np.power(st,2.)))) + 
+            (a2 * c2 * np.exp(-np.power(self.t.T - ut,2.) / (2 * np.power(st,2.)))) + 
+                (a3 * c3 * np.exp(-np.power(self.t.T - ut, 2.) / (2 * np.power(st,2.)))) + 
+                    (a4 * c4 * np.exp(-np.power(self.t.T - ut, 2.) / (2 * np.power(st, 2.))))
 
         return np.sum(self.spikes * (-np.log(o + big_t.T)) +
                       (1 - self.spikes) * (-np.log(1 - (o + big_t.T))))
