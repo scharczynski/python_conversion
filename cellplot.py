@@ -46,10 +46,14 @@ class CellPlot(object):
 
     def plot_fit(self, model):
         if isinstance(model, Const):
+            print("test")
             plt.axhline(y=model.fit, color='r', linestyle='-')
         else:
             plt.plot(self.t, model.expose_fit())
 
     def smooth_spikes(self, spikes):
-        avg_spikes = spikes / int(self.num_trials * self.subsample)
-        return scipy.signal.savgol_filter(avg_spikes, 251, 3)
+        
+        avg_spikes = spikes / int(self.num_trials / self.subsample)
+        # return scipy.signal.savgol_filter(avg_spikes, 251, 3)
+
+        return scipy.ndimage.filters.gaussian_filter(avg_spikes, 50)

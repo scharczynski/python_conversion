@@ -201,7 +201,7 @@ class Time(Model):
             self.st = self.fit[2]
             self.o = self.fit[3]
         fun = (self.a * np.exp(-np.power(self.t - self.ut, 2.) /
-                               (2 * np.power(self.st, 2.))) + self.o)
+                               (2 * np.power(self.st, 2.)))) + self.o
         return fun
 
 
@@ -437,7 +437,7 @@ class CatTime(Model):
             self.time_info.time_high,
             self.total_bins)
         if category:
-            fun = cat_coefs[category-1] * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.)))
+            fun = cat_coefs[category-1] * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.))) + self.o
         else:
         #dont use this
             fun = (self.a1 * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.)))) + (
