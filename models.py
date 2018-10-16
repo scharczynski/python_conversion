@@ -406,10 +406,10 @@ class CatTime(Model):
         ut, st, o = self.ut, self.st, x[0]
         a1, a2, a3, a4 = x[1], x[2], x[3], x[4]
 
-        big_t = (a1 * c1 * np.exp(-np.power(self.t.T - ut,2.) / (2 * np.power(st,2.)))) + 
-            (a2 * c2 * np.exp(-np.power(self.t.T - ut,2.) / (2 * np.power(st,2.)))) + 
-                (a3 * c3 * np.exp(-np.power(self.t.T - ut, 2.) / (2 * np.power(st,2.)))) + 
-                    (a4 * c4 * np.exp(-np.power(self.t.T - ut, 2.) / (2 * np.power(st, 2.))))
+        big_t = (a1 * c1 * np.exp(-np.power(self.t.T - ut, 2.) / (2 * np.power(st, 2.)))) + (
+            a2 * c2 * np.exp(-np.power(self.t.T - ut, 2.) / (2 * np.power(st, 2.)))) + (
+                a3 * c3 * np.exp(-np.power(self.t.T - ut, 2.) / (2 * np.power(st, 2.)))) + (
+                    a4 * c4 * np.exp(-np.power(self.t.T - ut, 2.) / (2 * np.power(st, 2.))))
 
         return np.sum(self.spikes * (-np.log(o + big_t.T)) +
                       (1 - self.spikes) * (-np.log(1 - (o + big_t.T))))
@@ -429,20 +429,23 @@ class CatTime(Model):
 
         return 1 - (x[0] + x[1] + x[2] + x[3] + x[4])
 
-    def plot_fit(self):
+    def expose_fit(self, category=0):
         ut, st, o = self.ut, self.st, self.o
-        a1, a2, a3, a4 = self.a1, self.a2, self.a3, self.a4
+        cat_coefs = [self.a1, self.a2, self.a3, self.a4]
         t = np.linspace(
             self.time_info.time_low,
             self.time_info.time_high,
             self.total_bins)
+        if category:
+            fun = cat_coefs[category-1] * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.)))
+        else:
+        #dont use this
+            fun = (self.a1 * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.)))) + (
+                self.a2 * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.)))) + (
+                    self.a3 * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.)))) + (
+                        self.a4 * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.)))) + self.o
 
-        fun = (a1 * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.))) 
-            + (a2 * np.exp(-np.power(t - ut, 2) / (2 * np.power(st, 2.))) 
-                + (a3 * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.))) 
-                    + (a4 * np.exp(-np.power(t - ut, 2) / (2 * np.power(st,2.))))))) + o
-
-        plt.plot(t, fun)
+        return fun
 
 
 class ConstCat(Model):

@@ -216,7 +216,7 @@ class AnalyzeAll(object):
     def fit_all(self):
         model_fits = {}
         for model in self.models:
-            model_fits[model] = {}
+            model_fits[model] = {} 
 
         for cell in range(self.no_cells):
             for model in self.models:
@@ -237,8 +237,10 @@ class AnalyzeAll(object):
             print(
                 self.analysis_dict[cell].compare_models(
                     min_model, max_model))
-            plotter.plot_comparison(min_model, max_model)
-            # self.analysis_dict[cell].plot_cat_fit(max_model)
+            #plotter.plot_comparison(min_model, max_model)
+            #self.analysis_dict[cell].plot_cat_fit(max_model)
+            plotter.plot_cat_fit(max_model)
+            plt.show()
 
 
 path_to_data = '/Users/stevecharczynski/workspace/python_ready_data'
@@ -247,7 +249,7 @@ data_processor = DataProcessor(path_to_data, time_info, 3, 4)
 sns.set()
 # analyze_all = AnalyzeAll(1, data_processor, ["time", "category_time"], 0.25)
 # analyze_all.compare_models("time", "category_time")
-analyze_all = AnalyzeAll(2, data_processor, ["time", "constant"], 0.25)
-analyze_all.compare_models("constant", "time")
-# analyze_all = AnalyzeAll(2, data_processor, ["time", "category_time"], 0.25)
-# analyze_all.compare_models("time", "category_time")
+# analyze_all = AnalyzeAll(2, data_processor, ["time", "constant"], 0.25)
+# analyze_all.compare_models("constant", "time")
+analyze_all = AnalyzeAll(2, data_processor, ["time", "category_time"], 0.25)
+analyze_all.compare_models("time", "category_time")
