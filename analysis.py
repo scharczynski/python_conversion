@@ -18,6 +18,7 @@ import math
 from time_info import TimeInfo
 import sys
 from cellplot import CellPlot
+import time
 
 
 class AnalyzeCell(object):
@@ -75,8 +76,10 @@ class AnalyzeCell(object):
                 self.conditions[cond] = self.conditions[cond][sampled_trials]
         self.time_info = data_processor.time_info
 
-    def fit_all_models(self):
-        return self.fit_time(), self.fit_category_time(), self.fit_constant()
+    def fit_model(self, model):
+        model.fit_params()
+        return model
+
 
     def fit_time(self):
         n = 2
@@ -96,6 +99,8 @@ class AnalyzeCell(object):
         m_time.update_params()
         self.time_model = m_time
         return m_time
+
+    
 
     def fit_constant(self):
         bounds_const = ((10**-10, 0.99),)
@@ -197,6 +202,7 @@ class AnalyzeAll(object):
     """
 
     def __init__(self, no_cells, data_processor, models, subsample):
+        self.time_start = time.time()
         self.no_cells = no_cells
         self.data_processor = data_processor
         self.time_info = data_processor.time_info
@@ -220,13 +226,15 @@ class AnalyzeAll(object):
 
         for cell in range(self.no_cells):
             for model in self.models:
-                model_fits[model][cell] = getattr(
-                    self.analysis_dict[cell], "fit_" + model)()
-            # analysis.fit_time()
-            # analysis.time_model.plot_fit()
-            # print (analysis.time_model.fit)
-            # analysis.fit_category_time()
-            # analysis.constant_model.plot_fit()
+                # model_fits[model][cell] = getattr(
+                #     self.analysis_dict[cell], "fit_" + model)()
+                spikes = self.analysis_dict[cell].binned_spikes
+                time_info = self.analysis_dict[cell].time_info
+                num_trials = self.analysis_dict[cell].num_trials
+                conditions = self.analysis_dict[cell].conditions
+
+                model_instance = getattr(models, model)(spikes, time_info, num_trials, conditions)
+                model_fits[model][cell] = getattr(self.analysis_dict[cell], "fit_model")(model_instance)
         return model_fits
 
     def compare_models(self, model_min, model_max):
@@ -238,12 +246,13 @@ class AnalyzeAll(object):
                 self.analysis_dict[cell].compare_models(
                     min_model, max_model))
             plotter.plot_comparison(min_model, max_model)
+            plt.show()
             #self.analysis_dict[cell].plot_cat_fit(max_model)
             # plotter.plot_cat_fit(max_model)
             print(min_model.fit)
             print(max_model.fit)
-            plt.show()
-
+        print("TIME IS")
+        print(time.time() - self.time_start)
 
 path_to_data = '/Users/stevecharczynski/workspace/python_ready_data'
 time_info = TimeInfo(0.4, 2.0, 0.001)
@@ -251,7 +260,7 @@ data_processor = DataProcessor(path_to_data, time_info, 3, 4)
 sns.set()
 # analyze_all = AnalyzeAll(1, data_processor, ["time", "category_time"], 0.25)
 # analyze_all.compare_models("time", "category_time")
-analyze_all = AnalyzeAll(2, data_processor, ["time", "constant"], 0.05)
-analyze_all.compare_models("constant", "time")
+analyze_all = AnalyzeAll(2, data_processor, ["Time", "Const"], 0.10)
+analyze_all.compare_models("Const", "Time")
 # analyze_all = AnalyzeAll(2, data_processor, ["time", "category_time"], 0.1)
 # analyze_all.compare_models("time", "category_time")

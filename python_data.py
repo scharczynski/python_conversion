@@ -59,7 +59,7 @@ class DataProcessor(object):
 
     """
 
-    def __init__(self, path, time_info, num_cells, num_conditions):
+    def __init__(self, path, time_info, num_cells, num_conditions=0):
         self.path = path
         self.num_cells = num_cells
         self.time_high_ms = time_info.time_high * 1000

@@ -61,9 +61,8 @@ class Model(object):
 
     """
 
-    def __init__(self, spikes, time_info, bounds):
+    def __init__(self, spikes, time_info):
         self.spikes = spikes
-        self.bounds = bounds
         self.time_info = time_info
         self.total_bins = (
             (time_info.time_high - time_info.time_low) / (time_info.time_bin))
@@ -73,8 +72,9 @@ class Model(object):
             self.total_bins)
         self.fit = None
         self.fun = None
-        self.lb = [x[0] for x in bounds]
-        self.ub = [x[1] for x in bounds]
+        self.bounds = None
+        self.lb = None
+        self.ub = None
 
     def fit_params(self):
         """Fit model paramters using Particle Swarm Optimization then SciPy's minimize.
@@ -140,6 +140,11 @@ class Model(object):
         """
         raise NotImplementedError("Must override plot_fit")
 
+    def set_bounds(self, bounds):
+        self.bounds = bounds
+        self.lb = [x[0] for x in self.bounds]
+        self.ub = [x[1] for x in self.bounds]
+
 
 class Time(Model):
 
@@ -162,14 +167,23 @@ class Time(Model):
 
     """
 
-    def __init__(self, spikes, time_info, bounds):
-        super().__init__(spikes, time_info, bounds)
+    def __init__(self, spikes, time_info, num_trials, conditions):
+        super().__init__(spikes, time_info)
         self.name = "time"
         self.num_params = 4
         self.ut = None
         self.st = None
         self.a = None
         self.o = None
+        n = 2
+        mean_delta = 0.10 * (self.time_info.time_high -
+                             self.time_info.time_low)
+        mean_bounds = (
+            (self.time_info.time_low - mean_delta),
+            (self.time_info.time_high + mean_delta))
+        bounds = ((0.001, 1 / n), mean_bounds, (0.01, 5.0), (10**-10, 1 / n))
+        self.set_bounds(bounds)
+
 
     def build_function(self, x):
         a, ut, st, o = x[0], x[1], x[2], x[3]
@@ -220,11 +234,13 @@ class Const(Model):
 
     """
 
-    def __init__(self, spikes, time_info, bounds):
-        super().__init__(spikes, time_info, bounds)
+    def __init__(self, spikes, time_info, num_trials, conditions):
+        super().__init__(spikes, time_info)
         self.o = None
         self.name = "constant"
         self.num_params = 1
+        bounds = ((10**-10, 0.99),)
+        self.set_bounds(bounds)
 
     def build_function(self, x):
         o = x[0]
