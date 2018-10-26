@@ -9,11 +9,13 @@ class CellPlot(object):
 
     def __init__(self, analysis):
         self.summed_spikes = analysis.summed_spikes
-        self.summed_spikes_condition = analysis.summed_spikes_condition
         self.cell_no = analysis.cell_no
         self.num_trials = analysis.num_trials
         self.binned_spikes = analysis.binned_spikes
         self.conditions = analysis.conditions
+        if self.conditions is not None:
+            self.summed_spikes_condition = analysis.summed_spikes_condition
+
         self.time_info = analysis.time_info
         self.subsample = analysis.subsample
         self.t = np.linspace(
@@ -37,19 +39,20 @@ class CellPlot(object):
 
     def plot_comparison(self, model_min, model_max):
         fig = plt.figure()
+        fig.suptitle("cell " + str(self.cell_no))
         self.plot_fit(model_min)
-        plt.plot(self.t, self.smooth_spikes(self.summed_spikes))
+        plt.plot(self.t, self.smooth_spikes(self.summed_spikes), label="spike_train")
         self.plot_fit(model_max)
+        plt.legend(loc="upper left")
 
         fig_name = "figs/cell_%d_" + model_min.name + "_" + model_max.name + ".png"
         fig.savefig(fig_name % self.cell_no)
 
     def plot_fit(self, model):
         if isinstance(model, Const):
-            print("test")
             plt.axhline(y=model.fit, color='r', linestyle='-')
         else:
-            plt.plot(self.t, model.expose_fit())
+            plt.plot(self.t, model.expose_fit(), label=model.name)
 
     def smooth_spikes(self, spikes):
         

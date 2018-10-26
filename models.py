@@ -61,14 +61,14 @@ class Model(object):
 
     """
 
-    def __init__(self, spikes, time_info):
-        self.spikes = spikes
-        self.time_info = time_info
-        self.total_bins = (
-            (time_info.time_high - time_info.time_low) / (time_info.time_bin))
+    def __init__(self, data):
+        self.spikes = data['spikes']
+        self.time_info = data['time_info']
+        self.total_bins = round(
+            (self.time_info.time_high - self.time_info.time_low) / (self.time_info.time_bin))
         self.t = np.linspace(
-            time_info.time_low,
-            time_info.time_high,
+            self.time_info.time_low,
+            self.time_info.time_high,
             self.total_bins)
         self.fit = None
         self.fun = None
@@ -167,8 +167,8 @@ class Time(Model):
 
     """
 
-    def __init__(self, spikes, time_info, num_trials, conditions):
-        super().__init__(spikes, time_info)
+    def __init__(self, data):
+        super().__init__(data)
         self.name = "time"
         self.num_params = 4
         self.ut = None
@@ -181,12 +181,15 @@ class Time(Model):
         mean_bounds = (
             (self.time_info.time_low - mean_delta),
             (self.time_info.time_high + mean_delta))
-        bounds = ((0.001, 1 / n), mean_bounds, (0.01, 5.0), (10**-10, 1 / n))
-        self.set_bounds(bounds)
+        # bounds = ((0.001, 1 / n), mean_bounds, (0.01, 5.0), (10**-10, 1 / n))
+        bounds = ((0.001, 1 / n), (-500, 2500), (0.01, 500), (10**-10, 1 / n))
 
+        self.set_bounds(bounds)
+        print(self.spikes.shape)
 
     def build_function(self, x):
         a, ut, st, o = x[0], x[1], x[2], x[3]
+ 
         self.function = (
             (a * np.exp(-np.power(self.t - ut, 2.) / (2 * np.power(st, 2.)))) + o)
         res = np.sum(self.spikes * (-np.log(self.function)) +
@@ -234,8 +237,8 @@ class Const(Model):
 
     """
 
-    def __init__(self, spikes, time_info, num_trials, conditions):
-        super().__init__(spikes, time_info)
+    def __init__(self, data):
+        super().__init__(data)
         self.o = None
         self.name = "constant"
         self.num_params = 1
@@ -391,18 +394,11 @@ class CatTime(Model):
 
     """
 
-    def __init__(
-            self,
-            spikes,
-            time_info,
-            bounds,
-            time_params,
-            conditions,
-            num_trials):
-        super().__init__(spikes, time_info, bounds)
+    def __init__(self, data):
+        super().__init__(data)
         self.name = "category_time"
         self.t = np.tile(self.t, (num_trials, 1))
-        self.conditions = conditions
+        self.conditions = data["conditions"]
         self.ut = time_params[1]
         self.st = time_params[2]
         self.o = None
@@ -410,7 +406,7 @@ class CatTime(Model):
         self.a2 = None
         self.a3 = None
         self.a4 = None
-        self.bounds = bounds
+        self.bounds = "manually define!"
         self.num_params = 7
 
     def build_function(self, x):
@@ -527,3 +523,143 @@ class ConstCat(Model):
 
     def pso_con(self, x):
         return 1
+
+
+class PositionTime(Model):
+
+    def __init__(self, data):
+        super().__init__(data)
+        self.name = "time_position"
+        #self.num_params = 8
+        self.num_params = 10
+        self.ut = None
+        self.st = None
+        self.a = None
+        self.o = None
+        n = 4
+        mean_delta = 0.10 * (self.time_info.time_high - self.time_info.time_low)
+        mean_bounds = (
+            (self.time_info.time_low - mean_delta),
+            (self.time_info.time_high + mean_delta))
+        bounds = ((0.001, 1 / n), mean_bounds, (0.01, 5.0), (10**-10, 1 / n),
+                    (0.001, 1 / n), mean_bounds, (0.01, 5.0), (10**-10, 1 / n),
+                    mean_bounds, (0.01, 5.0)) 
+
+        self.set_bounds(bounds)
+        self.position = data["position"]
+
+    def build_function(self, x):
+        a_t, mu_t, sig_t, a_t0 = x[0], x[1], x[2], x[3]
+        a_s, mu_s, sig_s, a_s0 = x[4], x[5], x[6], x[7]
+        mu_sy, sig_sy= x[8], x[9]
+        time_comp = (
+            (a_t * np.exp(-np.power(self.t - mu_t, 2.) / (2 * np.power(sig_t, 2.)))) + a_t0)
+        
+        #spacial_comp = a_s * (np.exp(-np.power(self.position[0] - mu_s, 2.) / (2 * np.power(sig_s, 2.)))) + a_s0
+
+        spacial_comp = a_s * (np.exp(-np.power(self.position[1] - mu_s, 2.) / (2 * np.power(sig_s, 2.))
+            + (np.power(self.position[0] - mu_sy, 2.) / (2 * np.power(sig_sy, 2.))))) + a_s0
+
+
+        self.function = time_comp + spacial_comp
+        res = np.sum(self.spikes * (-np.log(self.function)) + 
+            (1 - self.spikes) * (-np.log(1 - (self.function))))
+        return res
+
+    def fit_params(self):
+        super().fit_params()
+        return (self.fit, self.fun)
+
+    def pso_con(self, x):
+        return 1 - (x[0] + x[3] + x[4] + x[7])
+
+    def expose_fit(self):
+        if self.fit is None:
+            raise ValueError("fit not yet computed")
+        else:
+            self.a_t = self.fit[0]
+            self.mu_t = self.fit[1]
+            self.sig_t = self.fit[2]
+            self.a_t0 = self.fit[3]
+            self.a_s = self.fit[4]
+            self.mu_s = self.fit[5]
+            self.sig_s = self.fit[6]
+            self.a_s0 = self.fit[7]
+            self.mu_sy = self.fit[8]
+            self.sig_sy = self.fit[9]
+        time_comp = (
+            (self.a_t * np.exp(-np.power(self.t - self.mu_t, 2.) / (2 * np.power(self.sig_t, 2.)))) + self.a_t0)
+        
+        #spacial_comp = self.a_s * (np.exp(-np.power(self.position[0] - self.mu_s, 2.) / (2 * np.power(self.sig_s, 2.)))) + self.a_s0
+
+        spacial_comp = self.a_s * (np.exp(-np.power(self.position[1] - self.mu_s, 2.) / (2 * np.power(self.sig_s, 2.))
+            + (np.power(self.position[0] - self.mu_sy, 2.) / (2 * np.power(self.sig_sy, 2.))))) + self.a_s0
+        fun = time_comp + spacial_comp
+        return fun
+
+class PositionGauss(Model):
+
+    def __init__(self, data):
+        super().__init__(data)
+        self.name = "pos-gauss"
+        #self.num_params = 8
+
+        self.num_params = 6
+        self.ut = None
+        self.st = None
+        self.a = None
+        self.o = None
+        n = 3
+        mean_delta = 0.10 * (self.time_info.time_high - self.time_info.time_low)
+        mean_bounds = (
+            (self.time_info.time_low - mean_delta),
+            (self.time_info.time_high + mean_delta))
+        bounds = ((0.001, 1 / n), (0, 1000), (0.01, 500.0), (10**-10, 1 / n),
+                    (0,1000), (0.01, 500.0))
+
+
+        self.set_bounds(bounds)
+        self.position = data["position"]
+
+    def build_function(self, x):
+        a, mu_x, sig_x, a_0 = x[0], x[1], x[2], x[3]
+        mu_y, sig_y= x[4], x[5]
+
+        # print(self.spikes.shape)
+        # print(self.position[0].shape)
+        xpos = np.arange(0, 992, 1)
+        ypos = np.arange(0, 992, 1)
+        
+        self.function = a * (np.exp(-np.power(xpos- mu_x, 2.) / (2 * np.power(sig_x, 2.))
+            + (np.power(ypos- mu_y, 2.) / (2 * np.power(sig_y, 2.))))) + a_0 
+
+        # print(self.spikes.shape)
+        # print(self.function.shape)
+        res = np.sum(self.spikes.T * (-np.log(self.function)) + 
+            (1 - self.spikes.T) * (-np.log(1 - (self.function))))
+        return res
+
+    def fit_params(self):
+        super().fit_params()
+        return (self.fit, self.fun)
+
+    def pso_con(self, x):
+        return 1 - (x[0] + x[3])
+
+    def expose_fit(self):
+        if self.fit is None:
+            raise ValueError("fit not yet computed")
+        else:
+            self.a = self.fit[4]
+            self.mu_x = self.fit[5]
+            self.sig_x = self.fit[6]
+            self.a_0 = self.fit[7]
+            self.mu_y = self.fit[8]
+            self.sig_y = self.fit[9]
+
+        xpos = np.arange(0, 992, 1)
+        ypos = np.arange(0, 992, 1)
+
+        fun = self.a * (np.exp(-np.power(xpos - self.mu_x, 2.) / (2 * np.power(self.sig_x, 2.))
+            + (np.power(xpos- self.mu_y, 2.) / (2 * np.power(self.sig_y, 2.))))) + self.a_0
+        return fun
