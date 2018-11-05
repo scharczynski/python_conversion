@@ -38,9 +38,9 @@ class AnalysisPipeline(object):
 
     """
 
-    def __init__(self, no_cells, data_processor, models, subsample):
+    def __init__(self, cell_range, data_processor, models, subsample):
         self.time_start = time.time()
-        self.no_cells = no_cells
+        self.cell_range = cell_range
         self.data_processor = data_processor
         self.time_info = data_processor.time_info
         self.models = models
@@ -51,7 +51,7 @@ class AnalysisPipeline(object):
 
     def make_analysis(self):
         analysis_dict = {}
-        for cell in range(self.no_cells):
+        for cell in range(self.cell_range[0], self.cell_range[1] +1):
             analysis_dict[cell] = AnalyzeCell(
                 cell, self.data_processor, self.subsample)
         return analysis_dict
@@ -61,7 +61,7 @@ class AnalysisPipeline(object):
         for model in self.models:
             model_fits[model] = {} 
 
-        for cell in range(self.no_cells):
+        for cell in range(self.cell_range[0], self.cell_range[1] +1):
             for model in self.models:
                 # model_fits[model][cell] = getattr(
                 #     self.analysis_dict[cell], "fit_" + model)()
@@ -79,19 +79,17 @@ class AnalysisPipeline(object):
         return model_fits
 
     def compare_models(self, model_min, model_max):
-        for cell in range(self.no_cells):
+        for cell in range(self.cell_range[0], self.cell_range[1] +1):
             plotter = CellPlot(self.analysis_dict[cell])
+
+
             min_model = self.model_fits[model_min][cell]
             max_model = self.model_fits[model_max][cell]
+
             print(min_model.fit)
             print(max_model.fit)
-            print(
-                self.analysis_dict[cell].compare_models(
-                    min_model, max_model))
-            plotter.plot_comparison(min_model, max_model)
+            plotter.plot_cat_fit(max_model)
             plt.show()
-            #self.analysis_dict[cell].plot_cat_fit(max_model)
-            # plotter.plot_cat_fit(max_model)
 
         print("TIME IS")
         print(time.time() - self.time_start)

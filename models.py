@@ -181,7 +181,7 @@ class Time(Model):
         mean_bounds = (
             (self.time_info.time_low - mean_delta),
             (self.time_info.time_high + mean_delta))
-        # bounds = ((0.001, 1 / n), mean_bounds, (0.01, 5.0), (10**-10, 1 / n))
+        #bounds = ((0.001, 1 / n), mean_bounds, (0.01, 5.0), (10**-10, 1 / n))
         bounds = ((0.001, 1 / n), (-500, 2500), (0.01, 500), (10**-10, 1 / n))
 
         self.set_bounds(bounds)
@@ -603,8 +603,8 @@ class PositionGauss(Model):
         super().__init__(data)
         self.name = "pos-gauss"
         #self.num_params = 8
-
-        self.num_params = 6
+        self.spikes = self.spikes/50
+        self.num_params = 4
         self.ut = None
         self.st = None
         self.a = None
@@ -614,8 +614,7 @@ class PositionGauss(Model):
         mean_bounds = (
             (self.time_info.time_low - mean_delta),
             (self.time_info.time_high + mean_delta))
-        bounds = ((0.001, 1 / n), (0, 1000), (0.01, 500.0), (10**-10, 1 / n),
-                    (0,1000), (0.01, 500.0))
+        bounds = ((10**-10, 1 / n), (0, 1000), (0.01, 500.0), (10**-10,  1 / n))
 
 
         self.set_bounds(bounds)
@@ -623,18 +622,8 @@ class PositionGauss(Model):
 
     def build_function(self, x):
         a, mu_x, sig_x, a_0 = x[0], x[1], x[2], x[3]
-        mu_y, sig_y= x[4], x[5]
-
-        # print(self.spikes.shape)
-        # print(self.position[0].shape)
-        xpos = np.arange(0, 992, 1)
-        ypos = np.arange(0, 992, 1)
-        
-        self.function = a * (np.exp(-np.power(xpos- mu_x, 2.) / (2 * np.power(sig_x, 2.))
-            + (np.power(ypos- mu_y, 2.) / (2 * np.power(sig_y, 2.))))) + a_0 
-
-        # print(self.spikes.shape)
-        # print(self.function.shape)
+        xpos = np.arange(0, 990, 1)
+        self.function = (a * (np.exp(-np.power(xpos - mu_x, 2.) / (2 * np.power(sig_x, 2.))))) + a_0 
         res = np.sum(self.spikes.T * (-np.log(self.function)) + 
             (1 - self.spikes.T) * (-np.log(1 - (self.function))))
         return res
@@ -650,16 +639,99 @@ class PositionGauss(Model):
         if self.fit is None:
             raise ValueError("fit not yet computed")
         else:
-            self.a = self.fit[4]
-            self.mu_x = self.fit[5]
-            self.sig_x = self.fit[6]
-            self.a_0 = self.fit[7]
-            self.mu_y = self.fit[8]
-            self.sig_y = self.fit[9]
+            self.a = self.fit[0]
+            self.mu_x = self.fit[1]
+            self.sig_x = self.fit[2]
+            self.a_0 = self.fit[3]
 
-        xpos = np.arange(0, 992, 1)
-        ypos = np.arange(0, 992, 1)
 
-        fun = self.a * (np.exp(-np.power(xpos - self.mu_x, 2.) / (2 * np.power(self.sig_x, 2.))
-            + (np.power(xpos- self.mu_y, 2.) / (2 * np.power(self.sig_y, 2.))))) + self.a_0
-        return fun
+        xpos = np.arange(0, 990, 1)
+
+        fun = self.a * (np.exp(-np.power(xpos - self.mu_x, 2.) / (2 * np.power(self.sig_x, 2.)))) + self.a_0
+        return fun  
+
+class BoxCategories(Model):
+    def __init__(self, data):
+        super().__init__(data)
+        self.name = ("moving_box")
+        n = 7
+        self.spikes = self.spikes/50
+
+        self.num_params = 19
+        self.conditions =  data["conditions"]
+        bounds = ((10**-10, 1 / n), (0, 1000), (1, 500.0), (10**-10, 1 / n), (0, 1000), (1, 500.0),
+            (10**-10, 1 / n), (0, 1000), (1, 500.0), (10**-10, 1 / n), (0, 1000), (1, 500.0),
+            (10**-10, 1 / n), (0, 1000), (1, 500.0), (10**-10, 1 / n), (0, 1000), (1, 500.0), 
+            (10**-10,  1 / n))
+
+        self.set_bounds(bounds)
+
+    def build_function(self, x):
+        a1, mu_x1, sig_x1 = x[0], x[1], x[2]
+        a2, mu_x2, sig_x2 = x[3], x[4], x[5]
+        a3, mu_x3, sig_x3 = x[6], x[7], x[8]
+        a4, mu_x4, sig_x4 = x[9], x[10], x[11]
+        a5, mu_x5, sig_x5 = x[12], x[13], x[14]
+        a6, mu_x6, sig_x6 = x[15], x[16], x[17]
+        a_0 = x[18]
+        c1 = self.conditions[1]
+        c2 = self.conditions[2]
+        c3 = self.conditions[3]
+        c4 = self.conditions[4]
+        c5 = self.conditions[5]
+        c6 = self.conditions[6]
+
+        xpos = np.arange(0, 990, 1)
+        xpos =  np.tile(xpos, (60, 1)).T
+
+
+
+        pos1 = (a1 * c1 * np.exp(-np.power(xpos - mu_x1, 2.) / (2 * np.power(sig_x1, 2.))))
+        pos2 = (a2 * c2 * np.exp(-np.power(xpos - mu_x2, 2.) / (2 * np.power(sig_x2, 2.))))
+        pos3 = (a3 * c3 * np.exp(-np.power(xpos - mu_x3, 2.) / (2 * np.power(sig_x3, 2.))))
+        pos4 = (a4 * c4 * np.exp(-np.power(xpos - mu_x4, 2.) / (2 * np.power(sig_x4, 2.))))
+        pos5 = (a5 * c5 * np.exp(-np.power(xpos - mu_x5, 2.) / (2 * np.power(sig_x5, 2.))))
+        pos6 = (a6 * c6 * np.exp(-np.power(xpos - mu_x6, 2.) / (2 * np.power(sig_x6, 2.))))
+
+        self.function = pos1 + pos2 + pos3 + pos4 + pos5 + pos6 + a_0 
+        res = np.sum(self.spikes * (-np.log(self.function.T)) + 
+            (1 - self.spikes) * (-np.log(1 - (self.function.T))))
+        return res
+
+    def update_params(self):
+        self.ut = self.fit[0]
+        self.st = self.fit[1]
+        self.a = self.fit[2]
+        self.o = self.fit[3]
+
+    def fit_params(self):
+        super().fit_params()
+        return (self.fit, self.fun)
+
+    def pso_con(self, x):
+        return 1 - (x[0] + x[3])
+
+    def expose_fit(self, category=0):
+
+        if self.fit is None:
+            raise ValueError("fit not yet computed")
+        else:
+            a1, mu_x1, sig_x1 = self.fit[0], self.fit[1], self.fit[2]
+            a2, mu_x2, sig_x2 = self.fit[3], self.fit[4], self.fit[5]
+            a3, mu_x3, sig_x3 = self.fit[6], self.fit[7], self.fit[8]
+            a4, mu_x4, sig_x4 = self.fit[9], self.fit[10], self.fit[11]
+            a5, mu_x5, sig_x5 = self.fit[12], self.fit[13], self.fit[14]
+            a6, mu_x6, sig_x6 = self.fit[15], self.fit[16], self.fit[17]
+            a_0 = self.fit[18]
+
+            cat_coefs = [a1, a2, a3, a4, a5, a6]
+            mu_cat = [mu_x1, mu_x2, mu_x3, mu_x4, mu_x5, mu_x6]
+            sig_cat = [sig_x1, sig_x2, sig_x3, sig_x4, sig_x5, sig_x6]
+            t = np.linspace(
+                self.time_info.time_low,
+                self.time_info.time_high,
+                self.total_bins)
+            
+            fun = cat_coefs[category-1] * np.exp(-np.power(t - mu_cat[category-1], 2.) / (2 * np.power(sig_cat[category-1], 2.)))
+
+            return fun

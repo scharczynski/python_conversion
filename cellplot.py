@@ -30,12 +30,20 @@ class CellPlot(object):
             ax = sns.heatmap(self.binned_spikes.T)
 
     def plot_cat_fit(self, model):
-        ut, st, o = model.ut, model.st, model.o
+        fig = plt.figure()
         num_conditions = len(model.conditions.keys())
-        for condition in range(num_conditions):
+        fig.suptitle("cell " + str(self.cell_no))
+
+        for condition in model.conditions.keys():
             plt.subplot(2, num_conditions, condition + 1)
-            plt.plot(self.t, model.expose_fit(condition))
-            plt.plot(self.t, self.smooth_spikes(self.summed_spikes_condition[condition]))
+            plt.plot(self.t, model.expose_fit(condition), label="fit")
+            plt.plot(self.t, self.smooth_spikes(self.summed_spikes_condition[condition]), label="spike_train")
+            #plt.plot(self.t, self.smooth_spikes(self.summed_spikes))
+
+        fig_name = "figs/cell_%d_" + model.name + ".png"
+        plt.legend(loc="upper left")
+
+        fig.savefig(fig_name % self.cell_no)
 
     def plot_comparison(self, model_min, model_max):
         fig = plt.figure()
@@ -50,13 +58,16 @@ class CellPlot(object):
 
     def plot_fit(self, model):
         if isinstance(model, Const):
-            plt.axhline(y=model.fit, color='r', linestyle='-')
+            pass
+            #plt.axhline(y=model.fit, color='r', linestyle='-')
         else:
             plt.plot(self.t, model.expose_fit(), label=model.name)
 
     def smooth_spikes(self, spikes):
-        
-        avg_spikes = spikes / int(self.num_trials / self.subsample)
+        if self.subsample:
+            avg_spikes = spikes / int(self.num_trials / self.subsample)
+        else:
+            avg_spikes = spikes / int(self.num_trials)
         # return scipy.signal.savgol_filter(avg_spikes, 251, 3)
 
-        return scipy.ndimage.filters.gaussian_filter(avg_spikes, 50)
+        return scipy.ndimage.filters.gaussian_filter(avg_spikes, 10)

@@ -101,6 +101,7 @@ class DataProcessor(object):
                 spikes = {k: v * 1000 for k, v in spikes.items()}
         else:
             print("Spikes folder not found.")
+        print(spikes[0][0])
         return spikes
 
     def extract_num_trials(self):
