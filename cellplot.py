@@ -11,7 +11,7 @@ class CellPlot(object):
         self.summed_spikes = analysis.summed_spikes
         self.cell_no = analysis.cell_no
         self.num_trials = analysis.num_trials
-        self.binned_spikes = analysis.binned_spikes
+        self.time_spikes_binned = analysis.time_spikes_binned
         self.conditions = analysis.conditions
         if self.conditions is not None:
             self.summed_spikes_condition = analysis.summed_spikes_condition
@@ -19,15 +19,15 @@ class CellPlot(object):
         self.time_info = analysis.time_info
         self.subsample = analysis.subsample
         self.t = np.linspace(
-            self.time_info.time_low,
-            self.time_info.time_high,
+            self.time_info.region_low,
+            self.time_info.region_high,
             self.time_info.total_bins)
 
     def plot_raster(self, condition=0):
         if condition:
-            ax = sns.heatmap(self.binned_spikes.T * self.conditions[condition])
+            ax = sns.heatmap(self.time_spikes_binned.T * self.conditions[condition])
         else:
-            ax = sns.heatmap(self.binned_spikes.T)
+            ax = sns.heatmap(self.time_spikes_binned.T)
 
     def plot_cat_fit(self, model):
         fig = plt.figure()
@@ -58,8 +58,7 @@ class CellPlot(object):
 
     def plot_fit(self, model):
         if isinstance(model, Const):
-            pass
-            #plt.axhline(y=model.fit, color='r', linestyle='-')
+            plt.axhline(y=model.fit, color='r', linestyle='-')
         else:
             plt.plot(self.t, model.expose_fit(), label=model.name)
 
@@ -70,4 +69,4 @@ class CellPlot(object):
             avg_spikes = spikes / int(self.num_trials)
         # return scipy.signal.savgol_filter(avg_spikes, 251, 3)
 
-        return scipy.ndimage.filters.gaussian_filter(avg_spikes, 10)
+        return scipy.ndimage.filters.gaussian_filter(avg_spikes, 50)

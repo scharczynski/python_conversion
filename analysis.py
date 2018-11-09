@@ -37,7 +37,7 @@ class AnalyzeCell(object):
     ----------
     summed_spikes : numpy.ndarray
         Array containing summed spike data for given cell.
-    binned_spikes : numpy.ndarray
+    time_spikes_binned : numpy.ndarray
         Array containing binned spike data or given cell.
     conditions : dict (int: numpy.ndarray of int)
         Dict containing condition information for the cell.
@@ -63,12 +63,13 @@ class AnalyzeCell(object):
                 data_processor.num_trials[cell_no],
                 size=self.num_trials)
 
-            self.binned_spikes = data_processor.binned_spikes[cell_no][sampled_trials, :]
+            self.time_spikes_binned = data_processor.time_spikes_binned[cell_no][sampled_trials, :]
         else:
             self.num_trials = data_processor.num_trials[cell_no]
-            self.binned_spikes = data_processor.binned_spikes[cell_no]
+            self.time_spikes_binned = data_processor.time_spikes_binned[cell_no]
 
         self.cell_no = cell_no
+
         if data_processor.summed_spikes is not None:
             self.summed_spikes = data_processor.summed_spikes[cell_no]
         else: 
@@ -96,7 +97,7 @@ class AnalyzeCell(object):
         if isinstance(model, models.Const):
             model.fit_params()
         else:
-            self.iterate_fits(model, 1)
+            self.iterate_fits(model, 3)
             #model.fit_params()
             
         return model

@@ -6,6 +6,7 @@ import pandas
 import time_info
 import os
 import math
+from describe_data import DescribeData
 
 
 class DataProcessor(object):
@@ -53,7 +54,7 @@ class DataProcessor(object):
         Array containing condition data (integers 1 through 4) per cell per trial.
     summed_spikes : dict (int: numpy.ndarray)
         Dict containing summed spike data for all cells, indexed by cell.
-    binned_spikes : dict (int: numpy.ndarray)
+    time_spikes_binned : dict (int: numpy.ndarray)
         Dict containing binned spike data for all cells, indexed by cell.
     conditions_dict : dict (tuple of int, int: numpy.ndarray of int)
         Dict containing condition information for all cells.
@@ -61,26 +62,45 @@ class DataProcessor(object):
 
     """
 
-    def __init__(self, path, time_info, num_cells, num_conditions=0):
-        self.path = path
-        self.num_cells = num_cells
-        # self.time_high_ms = time_info.time_high * 1000
-        # self.time_low_ms = time_info.time_low * 1000
-        # self.time_bin_ms = time_info.time_bin * 1000
-        self.time_high_ms = time_info.time_high 
-        self.time_low_ms = time_info.time_low 
-        self.time_bin_ms = time_info.time_bin   
-        self.time_info = time_info
-        self.num_conditions = num_conditions
-        self.spikes = self.extract_spikes("ms")
+    def __init__(self, data_descriptor):
+        self.path = data_descriptor.path
+        self.num_cells = data_descriptor.num_cells
+        self.num_conditions = data_descriptor.num_conditions
+        self.spikes = self.extract_spikes(data_descriptor.time_units)
         self.num_trials = self.extract_num_trials()
         self.conditions = self.extract_conditions()
-        self.binned_spikes = self.bin_spikes()
-        self.summed_spikes = self.sum_spikes()
-        self.conditions_dict = self.associate_conditions()
-        self.summed_spikes_condition = self.sum_spikes_conditions()
         self.position_data = self.extract_position()
-        self.binned_position = self.bin_position()
+
+        self.conditions_dict = self.associate_conditions()
+
+
+        if data_descriptor.time_info is not None:
+            self.time_info = data_descriptor.time_info
+            self.time_high_ms = data_descriptor.time_info.region_high 
+            self.time_low_ms = data_descriptor.time_info.region_low 
+            self.time_bin_ms = data_descriptor.time_info.region_bin
+            self.total_time_bins = data_descriptor.time_info.total_bins
+            if data_descriptor.time_units == "s":
+                self.time_high_ms *= 1000
+                self.time_low_ms *= 1000
+                self.time_bin_ms *= 1000
+
+            self.time_spikes_binned = self.bin_spikes_time()
+            self.summed_spikes = self.sum_spikes()
+
+
+        if data_descriptor.pos_info is not None:
+            self.pos_info = data_descriptor.pos_info
+            self.pos_high = data_descriptor.pos_info.region_high 
+            self.pos_low = data_descriptor.pos_info.region_low 
+            self.pos_bin = data_descriptor.pos_info.region_bin  
+            self.total_pos_bins = data_descriptor.pos_info.total_bins
+
+
+
+        self.summed_spikes_condition = self.sum_spikes_conditions()
+        self.position_spikes_binned = self.bin_spikes_position()
+        self.summed_position_spikes = self.sum_position_spikes()
     
 
     def extract_spikes(self, units):
@@ -101,7 +121,6 @@ class DataProcessor(object):
                 spikes = {k: v * 1000 for k, v in spikes.items()}
         else:
             print("Spikes folder not found.")
-        print(spikes[0][0])
         return spikes
 
     def extract_num_trials(self):
@@ -169,9 +188,9 @@ class DataProcessor(object):
         """
         summed_spikes = {}
         for cell in range(self.num_cells):
-            # print(self.binned_spikes[cell])
-            # print(np.sum(self.binned_spikes[cell], 1))
-            summed_spikes[cell] = np.sum(self.binned_spikes[cell], 0)
+            # print(self.time_spikes_binned[cell])
+            # print(np.sum(self.time_spikes_binned[cell], 1))
+            summed_spikes[cell] = np.sum(self.time_spikes_binned[cell], 0)
         return summed_spikes
 
     def sum_spikes_conditions(self):
@@ -198,11 +217,11 @@ class DataProcessor(object):
             for cell in range(self.num_cells):
                 for condition in range(self.num_conditions):
                     summed_spikes_condition[cell][condition] = np.sum(
-                        self.binned_spikes[cell].T * self.conditions_dict[condition + 1, cell], 1)
+                        self.time_spikes_binned[cell].T * self.conditions_dict[condition + 1, cell], 1)
 
             return summed_spikes_condition
 
-    def bin_spikes(self):
+    def bin_spikes_time(self):
         """Bins spike data into configurable time bins.
 
         Returns
@@ -211,18 +230,18 @@ class DataProcessor(object):
             Binned spike data per cell.
 
         """
-        binned_spikes = {}
+        time_spikes_binned = {}
         for cell in range(self.num_cells):
-            binned_spikes[cell] = np.zeros((self.num_trials[cell], self.time_info.total_bins))
+            time_spikes_binned[cell] = np.zeros((self.num_trials[cell], self.total_time_bins))
 
             for trial_index, trial in enumerate(self.spikes[cell]):
                 if type(trial) is np.ndarray:
                     for time in trial:
 
                         if time < self.time_high_ms and time >= self.time_low_ms:
-                            binned_spikes[cell][trial_index][int(time - self.time_low_ms)] = 1
+                            time_spikes_binned[cell][trial_index][int(time - self.time_low_ms)] = 1
                         
-        return binned_spikes
+        return time_spikes_binned
 
     def associate_conditions(self):
         """Builds dictionary that associates trial and condition.
@@ -257,8 +276,53 @@ class DataProcessor(object):
                 binned_y[time_ind] =  self.position_data[index, 2]
         return (binned_x, binned_y)
 
-    def save_binned_spikes(self):
+    def save_time_spikes_binned(self):
         """Saves binned spike data to disk.
 
         """
-        np.save("binned_spikes", self.binned_spikes)
+        np.save("time_spikes_binned", self.time_spikes_binned)
+
+    def bin_spikes_position(self):
+        spike_pos_cells = {}
+        max_trial = 0
+        for cell in self.spikes.keys():
+            for i in self.spikes[cell]:
+                if len(i) > max_trial:
+                    max_trial = len(i)
+            
+        for cell in range(self.num_cells):
+            spike_pos_cells[cell] = np.zeros((self.num_trials[cell], max_trial+1))
+            for trial in range(self.num_trials[cell]):
+                spike_count = 0
+                for spike in self.spikes[cell][trial]:
+                    spike_count += 1
+                    index = int(spike * 1000)
+                    pos_time = int(self.position_data[:,0].flat[np.abs(self.position_data[:,0] - index).argmin()])
+                    pos_index = np.where(self.position_data[:,0] == pos_time)
+                    spike_pos_x = self.position_data[pos_index[0], 1][0]
+                    spike_pos_cells[cell][trial][spike_count] = spike_pos_x
+
+        min_x = min(self.position_data[:,1])
+        min_y = min(self.position_data[:,2])
+        max_x = max(self.position_data[:,1])
+        max_y = max(self.position_data[:,2])
+
+        position_spike = {}
+        for cell in range(self.num_cells):
+            position_spike[cell] = np.zeros((self.num_trials[cell], int(max_x+1)))
+            for trial in range(self.num_trials[cell]):
+                for spike_pos in spike_pos_cells[cell][trial]:
+                    if np.abs(spike_pos) > 0 :
+                        position_spike[cell][trial][int(spike_pos)] += 1            
+
+        return position_spike
+
+    def sum_position_spikes(self):
+
+        summed_position_spikes = {}
+        for cell in range(self.num_cells):
+            # print(self.time_spikes_binned[cell])
+            # print(np.sum(self.time_spikes_binned[cell], 1))
+            summed_position_spikes[cell] = np.sum(self.position_spikes_binned[cell], 0)
+
+        return summed_position_spikes

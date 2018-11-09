@@ -67,7 +67,7 @@ class AnalysisPipeline(object):
                 #     self.analysis_dict[cell], "fit_" + model)()
 
                 model_data = {}
-                model_data['spikes'] = self.analysis_dict[cell].binned_spikes
+                model_data['spikes_time'] = self.analysis_dict[cell].time_spikes_binned
                 model_data['time_info'] = self.analysis_dict[cell].time_info
                 model_data['num_trials'] = self.analysis_dict[cell].num_trials
                 model_data['conditions'] = self.analysis_dict[cell].conditions
@@ -88,7 +88,7 @@ class AnalysisPipeline(object):
 
             print(min_model.fit)
             print(max_model.fit)
-            plotter.plot_cat_fit(max_model)
+            plotter.plot_comparison(min_model, max_model)
             plt.show()
 
         print("TIME IS")

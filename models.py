@@ -62,13 +62,12 @@ class Model(object):
     """
 
     def __init__(self, data):
-        self.spikes = data['spikes']
         self.time_info = data['time_info']
         self.total_bins = round(
-            (self.time_info.time_high - self.time_info.time_low) / (self.time_info.time_bin))
+            (self.time_info.region_high - self.time_info.region_low) / (self.time_info.region_bin))
         self.t = np.linspace(
-            self.time_info.time_low,
-            self.time_info.time_high,
+            self.time_info.region_low,
+            self.time_info.region_high,
             self.total_bins)
         self.fit = None
         self.fun = None
@@ -169,6 +168,7 @@ class Time(Model):
 
     def __init__(self, data):
         super().__init__(data)
+        self.spikes = data['spikes_time']
         self.name = "time"
         self.num_params = 4
         self.ut = None
@@ -176,16 +176,17 @@ class Time(Model):
         self.a = None
         self.o = None
         n = 2
-        mean_delta = 0.10 * (self.time_info.time_high -
-                             self.time_info.time_low)
+        mean_delta = 0.10 * (self.time_info.region_high -
+                             self.time_info.region_low)
         mean_bounds = (
-            (self.time_info.time_low - mean_delta),
-            (self.time_info.time_high + mean_delta))
-        #bounds = ((0.001, 1 / n), mean_bounds, (0.01, 5.0), (10**-10, 1 / n))
-        bounds = ((0.001, 1 / n), (-500, 2500), (0.01, 500), (10**-10, 1 / n))
+            (self.time_info.region_low - mean_delta),
+            (self.time_info.region_high + mean_delta))
+        bounds = ((0.001, 1 / n), mean_bounds, (0.01, 5.0), (10**-10, 1 / n))
+        #bounds = ((0.001, 1 / n), (-500, 2500), (0.01, 500), (10**-10, 1 / n))
+        #bounds = ((0.001, 1 / n), mean_bounds, (0.01, 2000), (10**-10, 1 / n))
+
 
         self.set_bounds(bounds)
-        print(self.spikes.shape)
 
     def build_function(self, x):
         a, ut, st, o = x[0], x[1], x[2], x[3]
@@ -240,6 +241,8 @@ class Const(Model):
     def __init__(self, data):
         super().__init__(data)
         self.o = None
+        self.spikes = data['spikes_time']
+
         self.name = "constant"
         self.num_params = 1
         bounds = ((10**-10, 0.99),)
@@ -655,7 +658,7 @@ class BoxCategories(Model):
         super().__init__(data)
         self.name = ("moving_box")
         n = 7
-        self.spikes = self.spikes/50
+        self.spikes = self.spikes
 
         self.num_params = 19
         self.conditions =  data["conditions"]
