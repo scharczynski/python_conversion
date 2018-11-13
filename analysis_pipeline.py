@@ -71,7 +71,8 @@ class AnalysisPipeline(object):
                 model_data['time_info'] = self.analysis_dict[cell].time_info
                 model_data['num_trials'] = self.analysis_dict[cell].num_trials
                 model_data['conditions'] = self.analysis_dict[cell].conditions
-                model_data['position'] = self.analysis_dict[cell].binned_position
+                model_data['spikes_pos'] = self.analysis_dict[cell].position_spikes_binned
+                model_data['pos_info'] = self.analysis_dict[cell].pos_info
 
                 model_instance = getattr(models, model)(model_data)
                 model_fits[model][cell] = getattr(self.analysis_dict[cell], "fit_model")(model_instance)
@@ -90,6 +91,17 @@ class AnalysisPipeline(object):
             print(max_model.fit)
             plotter.plot_comparison(min_model, max_model)
             plt.show()
+
+    def show_condition_fit(self, model):
+        for cell in range(self.cell_range[0], self.cell_range[1] +1):
+            plotter = CellPlot(self.analysis_dict[cell])
+
+            extracted_model = self.model_fits[model][cell]
+
+            plotter.plot_cat_fit(extracted_model)
+            plt.show()
+
+
 
         print("TIME IS")
         print(time.time() - self.time_start)

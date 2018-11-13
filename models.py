@@ -66,8 +66,8 @@ class Model(object):
         self.total_bins = round(
             (self.time_info.region_high - self.time_info.region_low) / (self.time_info.region_bin))
         self.t = np.linspace(
-            self.time_info.region_low,
-            self.time_info.region_high,
+            self.time_info.region_low/1000,
+            self.time_info.region_high/1000,
             self.total_bins)
         self.fit = None
         self.fun = None
@@ -176,11 +176,11 @@ class Time(Model):
         self.a = None
         self.o = None
         n = 2
-        mean_delta = 0.10 * (self.time_info.region_high -
-                             self.time_info.region_low)
+        mean_delta = 0.10 * (self.time_info.region_high/1000 -
+                             self.time_info.region_low/1000)
         mean_bounds = (
-            (self.time_info.region_low - mean_delta),
-            (self.time_info.region_high + mean_delta))
+            (self.time_info.region_low/1000 - mean_delta),
+            (self.time_info.region_high/1000 + mean_delta))
         bounds = ((0.001, 1 / n), mean_bounds, (0.01, 5.0), (10**-10, 1 / n))
         #bounds = ((0.001, 1 / n), (-500, 2500), (0.01, 500), (10**-10, 1 / n))
         #bounds = ((0.001, 1 / n), mean_bounds, (0.01, 2000), (10**-10, 1 / n))
@@ -347,8 +347,8 @@ class CatSetTime(Model):
         ut, st, o = self.ut, self.st, self.o
         a1, a2 = self.a1, self.a2
         t = np.linspace(
-            self.time_info.time_low,
-            self.time_info.time_high,
+            self.time_info.region_low,
+            self.time_info.region_high,
             self.total_bins)
         fun = (a1 * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.))) + (
             a2 * np.exp(-np.power(t - ut, 2) / (2 * np.power(st, 2.))))) + o
@@ -400,10 +400,11 @@ class CatTime(Model):
     def __init__(self, data):
         super().__init__(data)
         self.name = "category_time"
-        self.t = np.tile(self.t, (num_trials, 1))
+        self.t = np.tile(self.t, (data["num_trials"], 1))
         self.conditions = data["conditions"]
-        self.ut = time_params[1]
-        self.st = time_params[2]
+        self.spikes = data['spikes_time']
+        self.ut = None
+        self.st = None
         self.o = None
         self.a1 = None
         self.a2 = None
@@ -411,6 +412,15 @@ class CatTime(Model):
         self.a4 = None
         self.bounds = "manually define!"
         self.num_params = 7
+        n = 5
+        mean_delta = 0.10 * (self.time_info.region_high/1000 -
+                             self.time_info.region_low/1000)
+        mean_bounds = (
+            (self.time_info.region_low/1000 - mean_delta),
+            (self.time_info.region_high/1000 + mean_delta))
+        bounds = (mean_bounds, (0.01, 5.0), (10**-10, 1 / n), (0.001, 1 / n), (0.001, 1 / n), (0.001, 1 / n), (0.001, 1 / n),)        
+        self.set_bounds(bounds)
+
 
     def build_function(self, x):
         c1 = self.conditions[1]
@@ -418,8 +428,8 @@ class CatTime(Model):
         c3 = self.conditions[3]
         c4 = self.conditions[4]
 
-        ut, st, o = self.ut, self.st, x[0]
-        a1, a2, a3, a4 = x[1], x[2], x[3], x[4]
+        ut, st, o = x[0], x[1], x[2]
+        a1, a2, a3, a4 = x[3], x[4], x[5], x[6]
 
         big_t = (a1 * c1 * np.exp(-np.power(self.t.T - ut, 2.) / (2 * np.power(st, 2.)))) + (
             a2 * c2 * np.exp(-np.power(self.t.T - ut, 2.) / (2 * np.power(st, 2.)))) + (
@@ -434,31 +444,35 @@ class CatTime(Model):
         return self.fit, self.fun
 
     def update_params(self):
-        self.o = self.fit[0]
-        self.a1 = self.fit[1]
-        self.a2 = self.fit[2]
-        self.a3 = self.fit[3]
-        self.a4 = self.fit[4]
+
+        self.ut = self.fit[0]
+        self.st = self.fit[1]
+        self.o = self.fit[2]
+        self.a1 = self.fit[3]
+        self.a2 = self.fit[4]
+        self.a3 = self.fit[5]
+        self.a4 = self.fit[6]
 
     def pso_con(self, x):
 
-        return 1 - (x[0] + x[1] + x[2] + x[3] + x[4])
+        return 1 - (x[3] + x[4] + x[2] + x[5] + x[6])
 
     def expose_fit(self, category=0):
-        ut, st, o = self.ut, self.st, self.o
-        cat_coefs = [self.a1, self.a2, self.a3, self.a4]
+        ut, st, o = self.fit[0], self.fit[1], self.fit[2]
+        cat_coefs = [self.fit[3], self.fit[4], self.fit[5], self.fit[6]]
         t = np.linspace(
-            self.time_info.time_low,
-            self.time_info.time_high,
-            self.total_bins)
+            self.time_info.region_low,
+            self.time_info.region_high,
+            self.time_info.total_bins
+        )
         if category:
-            fun = cat_coefs[category-1] * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.))) + self.o
+            fun = (cat_coefs[category-1] * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.)))) 
         else:
         #dont use this
-            fun = (self.a1 * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.)))) + (
-                self.a2 * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.)))) + (
-                    self.a3 * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.)))) + (
-                        self.a4 * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.)))) + self.o
+            fun = (cat_coefs[0] * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.)))) + (
+                cat_coefs[1] * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.)))) + (
+                    cat_coefs[2] * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.)))) + (
+                        cat_coefs[3] * np.exp(-np.power(t - ut, 2.) / (2 * np.power(st, 2.)))) + o
 
         return fun
 
@@ -606,7 +620,6 @@ class PositionGauss(Model):
         super().__init__(data)
         self.name = "pos-gauss"
         #self.num_params = 8
-        self.spikes = self.spikes/50
         self.num_params = 4
         self.ut = None
         self.st = None
@@ -625,7 +638,7 @@ class PositionGauss(Model):
 
     def build_function(self, x):
         a, mu_x, sig_x, a_0 = x[0], x[1], x[2], x[3]
-        xpos = np.arange(0, 990, 1)
+        xpos = np.arange(0, 995, 1)
         self.function = (a * (np.exp(-np.power(xpos - mu_x, 2.) / (2 * np.power(sig_x, 2.))))) + a_0 
         res = np.sum(self.spikes.T * (-np.log(self.function)) + 
             (1 - self.spikes.T) * (-np.log(1 - (self.function))))
@@ -658,10 +671,12 @@ class BoxCategories(Model):
         super().__init__(data)
         self.name = ("moving_box")
         n = 7
-        self.spikes = self.spikes
-
+        self.spikes = data['spikes_pos']
+        self.pos_info = data['pos_info']
         self.num_params = 19
         self.conditions =  data["conditions"]
+        self.x_pos = np.arange(0, 995, 1)
+        self.x_pos =  np.tile(self.x_pos, (60, 1)).T
         bounds = ((10**-10, 1 / n), (0, 1000), (1, 500.0), (10**-10, 1 / n), (0, 1000), (1, 500.0),
             (10**-10, 1 / n), (0, 1000), (1, 500.0), (10**-10, 1 / n), (0, 1000), (1, 500.0),
             (10**-10, 1 / n), (0, 1000), (1, 500.0), (10**-10, 1 / n), (0, 1000), (1, 500.0), 
@@ -684,7 +699,7 @@ class BoxCategories(Model):
         c5 = self.conditions[5]
         c6 = self.conditions[6]
 
-        xpos = np.arange(0, 990, 1)
+        xpos = np.arange(0, 995, 1)
         xpos =  np.tile(xpos, (60, 1)).T
 
 
@@ -730,11 +745,7 @@ class BoxCategories(Model):
             cat_coefs = [a1, a2, a3, a4, a5, a6]
             mu_cat = [mu_x1, mu_x2, mu_x3, mu_x4, mu_x5, mu_x6]
             sig_cat = [sig_x1, sig_x2, sig_x3, sig_x4, sig_x5, sig_x6]
-            t = np.linspace(
-                self.time_info.time_low,
-                self.time_info.time_high,
-                self.total_bins)
-            
-            fun = cat_coefs[category-1] * np.exp(-np.power(t - mu_cat[category-1], 2.) / (2 * np.power(sig_cat[category-1], 2.)))
+
+            fun = cat_coefs[category-1] * np.exp(-np.power(self.x_pos - mu_cat[category-1], 2.) / (2 * np.power(sig_cat[category-1], 2.)))
 
             return fun

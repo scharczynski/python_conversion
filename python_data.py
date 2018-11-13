@@ -63,6 +63,7 @@ class DataProcessor(object):
     """
 
     def __init__(self, data_descriptor):
+        self.data_descriptor = data_descriptor
         self.path = data_descriptor.path
         self.num_cells = data_descriptor.num_cells
         self.num_conditions = data_descriptor.num_conditions
@@ -71,7 +72,9 @@ class DataProcessor(object):
         self.conditions = self.extract_conditions()
         self.position_data = self.extract_position()
 
-        self.conditions_dict = self.associate_conditions()
+        if data_descriptor.num_conditions:
+            self.conditions_dict = self.associate_conditions()
+        
 
 
         if data_descriptor.time_info is not None:
@@ -80,14 +83,15 @@ class DataProcessor(object):
             self.time_low_ms = data_descriptor.time_info.region_low 
             self.time_bin_ms = data_descriptor.time_info.region_bin
             self.total_time_bins = data_descriptor.time_info.total_bins
-            if data_descriptor.time_units == "s":
-                self.time_high_ms *= 1000
-                self.time_low_ms *= 1000
-                self.time_bin_ms *= 1000
 
-            self.time_spikes_binned = self.bin_spikes_time()
-            self.summed_spikes = self.sum_spikes()
 
+            self.time_spikes_binned = self.bin_spikes("time")
+            # self.time_spikes_binned = self.bin_spikes_time()
+            self.time_spikes_summed = self.sum_spikes("time")
+            self.time_spikes_summed_cat = self.sum_spikes_conditions("time")
+            # test = self.sum_old()
+            # plt.plot(test[0])
+            # plt.show()
 
         if data_descriptor.pos_info is not None:
             self.pos_info = data_descriptor.pos_info
@@ -96,13 +100,19 @@ class DataProcessor(object):
             self.pos_bin = data_descriptor.pos_info.region_bin  
             self.total_pos_bins = data_descriptor.pos_info.total_bins
 
+            self.position_spikes_binned = self.bin_spikes("position")
+            self.position_spikes_summed = self.sum_spikes("position")
+            self.position_spikes_summed_cat = self.sum_spikes_conditions("position")
 
 
-        self.summed_spikes_condition = self.sum_spikes_conditions()
-        self.position_spikes_binned = self.bin_spikes_position()
-        self.summed_position_spikes = self.sum_position_spikes()
+
+        #self.summed_spikes_condition = self.sum_spikes_conditions()
+
+    def get_region(self, type):
+        return self.data_descriptor.get_region_info(type)
+
+
     
-
     def extract_spikes(self, units):
         """Extracts spike times from data file and converts to miliseconds.
 
@@ -173,7 +183,7 @@ class DataProcessor(object):
             print("xy_data.npy not found")
             return None
 
-    def sum_spikes(self):
+    def sum_spikes(self, spike_type):
         """Sums spike data over trials.
 
         Returns
@@ -186,6 +196,20 @@ class DataProcessor(object):
         It may be correct here to normalize against number of trials.
 
         """
+        if spike_type == "time":
+            spikes = self.time_spikes_binned
+        elif spike_type == "position":
+            spikes = self.position_spikes_binned
+        else:
+            print("spike type must be either time or position")
+            return None
+
+        summed_spikes = {}
+        for cell in range(self.num_cells):
+            summed_spikes[cell] = np.sum(spikes[cell], 0)
+        return summed_spikes
+
+    def sum_old(self):
         summed_spikes = {}
         for cell in range(self.num_cells):
             # print(self.time_spikes_binned[cell])
@@ -193,7 +217,7 @@ class DataProcessor(object):
             summed_spikes[cell] = np.sum(self.time_spikes_binned[cell], 0)
         return summed_spikes
 
-    def sum_spikes_conditions(self):
+    def sum_spikes_conditions(self, spike_type):
         """Sums spike data over trials per condition
 
         Returns
@@ -206,18 +230,32 @@ class DataProcessor(object):
         Might be worth condensing this method with sum_spikes
 
         """
-        if self.conditions is not None:
-            total_time_bins = int(
-                (self.time_high_ms -
-                self.time_low_ms) /
-                self.time_bin_ms)
-            summed_spikes_condition = np.zeros(
-                (self.num_cells, self.num_conditions, total_time_bins))
 
+        if spike_type == "time":
+            spikes = self.time_spikes_binned
+        elif spike_type == "position":
+            spikes = self.position_spikes_binned
+        else:
+            print("spike type must be either time or position")
+            return None
+
+        if self.conditions is not None:
+            # total_time_bins = int(
+            #     (self.time_high_ms -
+            #     self.time_low_ms) /
+            #     self.time_bin_ms)
+            # summed_spikes_condition = np.zeros(
+            #     (self.num_cells, self.num_conditions, total_time_bins))
+
+            summed_spikes_condition = {}
+            # for i in range(self.num_conditions):
+                
             for cell in range(self.num_cells):
+                summed_spikes_condition[cell] = {}
                 for condition in range(self.num_conditions):
-                    summed_spikes_condition[cell][condition] = np.sum(
-                        self.time_spikes_binned[cell].T * self.conditions_dict[condition + 1, cell], 1)
+                    summed_spikes_condition[cell][condition+1] = {}
+                    summed_spikes_condition[cell][condition+1] = np.sum(
+                        spikes[cell].T * self.conditions_dict[(condition + 1), cell], 1)
 
             return summed_spikes_condition
 
@@ -242,6 +280,21 @@ class DataProcessor(object):
                             time_spikes_binned[cell][trial_index][int(time - self.time_low_ms)] = 1
                         
         return time_spikes_binned
+
+    def bin_spikes(self, spike_type):
+        region_info = self.get_region(spike_type)
+
+        spikes_binned = {}
+        for cell in self.spikes.keys():
+            spikes_binned[cell] = np.zeros((self.num_trials[cell], region_info.total_bins))
+
+            for trial_index, trial in enumerate(self.spikes[cell]):
+                if type(trial) is np.ndarray:
+                    for value in trial:
+                        if value < region_info.region_high and value >= region_info.region_low:
+                            spikes_binned[cell][trial_index][int(value - region_info.region_low)] = 1
+        
+        return spikes_binned
 
     def associate_conditions(self):
         """Builds dictionary that associates trial and condition.

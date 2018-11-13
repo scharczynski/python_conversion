@@ -51,6 +51,9 @@ class AnalyzeCell(object):
 
     def __init__(self, cell_no, data_processor, subsample):
         self.subsample = subsample
+        self.cell_no = cell_no
+
+
 
         if subsample:
             self.num_trials = int(
@@ -68,18 +71,23 @@ class AnalyzeCell(object):
             self.num_trials = data_processor.num_trials[cell_no]
             self.time_spikes_binned = data_processor.time_spikes_binned[cell_no]
 
-        self.cell_no = cell_no
+        if data_processor.data_descriptor.pos_info is not None:
+            self.position_spikes_binned = data_processor.position_spikes_binned[cell_no]
+            self.position_spikes_summed = data_processor.position_spikes_summed[cell_no]
+        else:
+            self.position_spikes_binned = None
+            self.position_spikes_summed = None        
+        
+        self.time_spikes_summed = data_processor.time_spikes_summed[cell_no]
 
-        if data_processor.summed_spikes is not None:
-            self.summed_spikes = data_processor.summed_spikes[cell_no]
-        else: 
-            self.summed_spikes = None
 
-        if data_processor.conditions is not None:
-            self.summed_spikes_condition = data_processor.summed_spikes_condition[cell_no]
+        if data_processor.num_conditions:
+            self.time_spikes_summed_cat = data_processor.time_spikes_summed_cat[cell_no]
+            self.position_spikes_summed_cat = data_processor.position_spikes_summed_cat[cell_no]
 
+            # self.position_spikes_summed_cat = data_processor.
             conditions_dict = data_processor.conditions_dict
-
+    
             self.conditions = {}
             for cond in range(1, data_processor.num_conditions + 1):
                 self.conditions[cond] = conditions_dict[cond, cell_no]
@@ -88,16 +96,15 @@ class AnalyzeCell(object):
         else:
             self.conditions = None
 
-        self.time_info = data_processor.time_info
-
-        self.binned_position = data_processor.binned_position
+        self.time_info = data_processor.data_descriptor.time_info
+        self.pos_info = data_processor.data_descriptor.pos_info
 
     def fit_model(self, model):
         print(self.cell_no)
         if isinstance(model, models.Const):
             model.fit_params()
         else:
-            self.iterate_fits(model, 3)
+            self.iterate_fits(model, 1)
             #model.fit_params()
             
         return model
