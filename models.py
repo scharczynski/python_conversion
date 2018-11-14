@@ -671,6 +671,7 @@ class BoxCategories(Model):
         super().__init__(data)
         self.name = ("moving_box")
         n = 7
+        self.model_type = "position"
         self.spikes = data['spikes_pos']
         self.pos_info = data['pos_info']
         self.num_params = 19
@@ -683,6 +684,8 @@ class BoxCategories(Model):
             (10**-10,  1 / n))
 
         self.set_bounds(bounds)
+        self.region =  self.x_pos
+
 
     def build_function(self, x):
         a1, mu_x1, sig_x1 = x[0], x[1], x[2]
@@ -699,17 +702,17 @@ class BoxCategories(Model):
         c5 = self.conditions[5]
         c6 = self.conditions[6]
 
-        xpos = np.arange(0, 995, 1)
-        xpos =  np.tile(xpos, (60, 1)).T
+        # xpos = np.arange(0, 995, 1)
+        # xpos =  np.tile(xpos, (60, 1)).T
 
 
 
-        pos1 = (a1 * c1 * np.exp(-np.power(xpos - mu_x1, 2.) / (2 * np.power(sig_x1, 2.))))
-        pos2 = (a2 * c2 * np.exp(-np.power(xpos - mu_x2, 2.) / (2 * np.power(sig_x2, 2.))))
-        pos3 = (a3 * c3 * np.exp(-np.power(xpos - mu_x3, 2.) / (2 * np.power(sig_x3, 2.))))
-        pos4 = (a4 * c4 * np.exp(-np.power(xpos - mu_x4, 2.) / (2 * np.power(sig_x4, 2.))))
-        pos5 = (a5 * c5 * np.exp(-np.power(xpos - mu_x5, 2.) / (2 * np.power(sig_x5, 2.))))
-        pos6 = (a6 * c6 * np.exp(-np.power(xpos - mu_x6, 2.) / (2 * np.power(sig_x6, 2.))))
+        pos1 = (a1 * c1 * np.exp(-np.power(self.x_pos - mu_x1, 2.) / (2 * np.power(sig_x1, 2.))))
+        pos2 = (a2 * c2 * np.exp(-np.power(self.x_pos - mu_x2, 2.) / (2 * np.power(sig_x2, 2.))))
+        pos3 = (a3 * c3 * np.exp(-np.power(self.x_pos - mu_x3, 2.) / (2 * np.power(sig_x3, 2.))))
+        pos4 = (a4 * c4 * np.exp(-np.power(self.x_pos - mu_x4, 2.) / (2 * np.power(sig_x4, 2.))))
+        pos5 = (a5 * c5 * np.exp(-np.power(self.x_pos - mu_x5, 2.) / (2 * np.power(sig_x5, 2.))))
+        pos6 = (a6 * c6 * np.exp(-np.power(self.x_pos - mu_x6, 2.) / (2 * np.power(sig_x6, 2.))))
 
         self.function = pos1 + pos2 + pos3 + pos4 + pos5 + pos6 + a_0 
         res = np.sum(self.spikes * (-np.log(self.function.T)) + 

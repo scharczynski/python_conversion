@@ -18,8 +18,6 @@ class DescribeData(object):
 
         if "pos_info" in regions.keys():
             self.pos_info = regions["pos_info"]
-            if self.time_units == "s":
-                self.pos_info.to_ms()
         else:
             self.pos_info = None
 

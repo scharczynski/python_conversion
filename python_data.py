@@ -72,8 +72,7 @@ class DataProcessor(object):
         self.conditions = self.extract_conditions()
         self.position_data = self.extract_position()
 
-        if data_descriptor.num_conditions:
-            self.conditions_dict = self.associate_conditions()
+        self.conditions_dict = self.associate_conditions()
         
 
 
@@ -92,6 +91,7 @@ class DataProcessor(object):
             # test = self.sum_old()
             # plt.plot(test[0])
             # plt.show()
+        
 
         if data_descriptor.pos_info is not None:
             self.pos_info = data_descriptor.pos_info
@@ -239,16 +239,11 @@ class DataProcessor(object):
             print("spike type must be either time or position")
             return None
 
-        if self.conditions is not None:
-            # total_time_bins = int(
-            #     (self.time_high_ms -
-            #     self.time_low_ms) /
-            #     self.time_bin_ms)
-            # summed_spikes_condition = np.zeros(
-            #     (self.num_cells, self.num_conditions, total_time_bins))
+        if self.conditions is None:
+            return None
+        else:
 
             summed_spikes_condition = {}
-            # for i in range(self.num_conditions):
                 
             for cell in range(self.num_cells):
                 summed_spikes_condition[cell] = {}
@@ -306,7 +301,9 @@ class DataProcessor(object):
             Array contains binary data: whether or not the trial is of the indexed condition.
 
         """
-        if self.conditions is not None:
+        if self.conditions is None:
+            return None
+        else:
             conditions_dict = {}
             for cell in range(self.num_cells):
                 cond = self.conditions[cell][0:self.num_trials[cell]]

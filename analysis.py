@@ -51,43 +51,44 @@ class AnalyzeCell(object):
 
     def __init__(self, cell_no, data_processor, subsample):
         self.subsample = subsample
-        self.cell_no = cell_no
-
-
-
         if subsample:
-            self.num_trials = int(
-                data_processor.num_trials[cell_no] * subsample)
-
-            if self.num_trials < 1:
-                self.num_trials = 1
-
-            sampled_trials = np.random.randint(
-                data_processor.num_trials[cell_no],
-                size=self.num_trials)
-
-            self.time_spikes_binned = data_processor.time_spikes_binned[cell_no][sampled_trials, :]
+            sampled_trials = self.subsample_trials(data_processor.num_trials, subsample)
+            self.num_trials = len(sampled_trials)
         else:
             self.num_trials = data_processor.num_trials[cell_no]
-            self.time_spikes_binned = data_processor.time_spikes_binned[cell_no]
+        self.cell_no = cell_no
 
         if data_processor.data_descriptor.pos_info is not None:
-            self.position_spikes_binned = data_processor.position_spikes_binned[cell_no]
+            if subsample:
+                self.position_spikes_binned = self.apply_subsample(
+                    data_processor.position_spikes_binned[cell_no],
+                    sampled_trials
+                )
+            else:
+                self.position_spikes_binned = data_processor.position_spikes_binned[cell_no]
             self.position_spikes_summed = data_processor.position_spikes_summed[cell_no]
+            self.position_spikes_summed_cat = data_processor.position_spikes_summed_cat[cell_no]
         else:
             self.position_spikes_binned = None
-            self.position_spikes_summed = None        
-        
-        self.time_spikes_summed = data_processor.time_spikes_summed[cell_no]
+            self.position_spikes_summed = None       
 
+        if data_processor.data_descriptor.time_info is not None:
+            if subsample:
+                self.time_spikes_binned = self.apply_subsample(
+                    data_processor.time_spikes_binned[cell_no],
+                    sampled_trials
+            )
+            else:
+                self.time_spikes_binned = data_processor.time_spikes_binned[cell_no]
+            self.time_spikes_summed = data_processor.time_spikes_summed[cell_no]
+            self.time_spikes_summed_cat = data_processor.time_spikes_summed_cat[cell_no]
+        else:
+            self.time_spikes_binned = None
+            self.time_spikes_summed = None
+
+        conditions_dict = data_processor.conditions_dict
 
         if data_processor.num_conditions:
-            self.time_spikes_summed_cat = data_processor.time_spikes_summed_cat[cell_no]
-            self.position_spikes_summed_cat = data_processor.position_spikes_summed_cat[cell_no]
-
-            # self.position_spikes_summed_cat = data_processor.
-            conditions_dict = data_processor.conditions_dict
-    
             self.conditions = {}
             for cond in range(1, data_processor.num_conditions + 1):
                 self.conditions[cond] = conditions_dict[cond, cell_no]
@@ -98,6 +99,27 @@ class AnalyzeCell(object):
 
         self.time_info = data_processor.data_descriptor.time_info
         self.pos_info = data_processor.data_descriptor.pos_info
+
+
+
+    def apply_subsample(self, spikes, sampled_trials):
+
+        return spikes[sampled_trials, :]
+        
+    def subsample_trials(self, num_trials, subsample):
+        num_trials = int(
+            num_trials * subsample)
+
+        if num_trials < 1:
+            num_trials = 1
+
+        sampled_trials = np.random.randint(
+            num_trials,
+            size=num_trials)
+
+        return sampled_trials
+
+
 
     def fit_model(self, model):
         print(self.cell_no)
