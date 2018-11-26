@@ -43,9 +43,12 @@ class AnalysisPipeline(object):
         self.cell_range = cell_range
         self.data_processor = data_processor
         self.time_info = data_processor.time_info
-        self.models = models
+        self.models_to_fit = models
+
         self.subsample = subsample
         self.analysis_dict = self.make_analysis()
+        self.model_dict = self.make_models()
+
         self.subsample = subsample
         self.model_fits = None
 
@@ -56,16 +59,39 @@ class AnalysisPipeline(object):
                 cell, self.data_processor, self.subsample)
         return analysis_dict
 
-    def fit_all(self):
-        model_fits = {}
-        for model in self.models:
-            model_fits[model] = {} 
+    # def fit_all(self):
+    #     model_fits = {}
+    #     for model in self.models:
+    #         model_fits[model] = {} 
 
+    #     for cell in range(self.cell_range[0], self.cell_range[1] +1):
+    #         for model in self.models:
+
+    #             #data passed here is manually selected by what models need
+    #             model_data = {}
+    #             model_data['spikes_time'] = self.analysis_dict[cell].time_spikes_binned
+    #             model_data['time_info'] = self.analysis_dict[cell].time_info
+    #             model_data['num_trials'] = self.analysis_dict[cell].num_trials
+    #             model_data['conditions'] = self.analysis_dict[cell].conditions
+    #             model_data['spikes_pos'] = self.analysis_dict[cell].position_spikes_binned
+    #             model_data['pos_info'] = self.analysis_dict[cell].pos_info
+
+    #             #this creates an instance of class "model" in the module "models"
+    #             model_instance = getattr(models, model)(model_data)
+    #             #this goes through analysis objects created previously and calls "fit_model" on
+    #             #newly created models
+    #             model_fits[model][cell] = getattr(self.analysis_dict[cell], "fit_model")(model_instance)
+    #     self.model_fits = model_fits
+    #     return model_fits
+
+    def make_models(self):
+        model_dict = {}
+        for model in self.models_to_fit:
+            model_dict[model] = {}
         for cell in range(self.cell_range[0], self.cell_range[1] +1):
-            for model in self.models:
-                # model_fits[model][cell] = getattr(
-                #     self.analysis_dict[cell], "fit_" + model)()
+            for model in self.models_to_fit:
 
+                #data passed here is manually selected by what models need
                 model_data = {}
                 model_data['spikes_time'] = self.analysis_dict[cell].time_spikes_binned
                 model_data['time_info'] = self.analysis_dict[cell].time_info
@@ -74,7 +100,29 @@ class AnalysisPipeline(object):
                 model_data['spikes_pos'] = self.analysis_dict[cell].position_spikes_binned
                 model_data['pos_info'] = self.analysis_dict[cell].pos_info
 
+                #this creates an instance of class "model" in the module "models"
                 model_instance = getattr(models, model)(model_data)
+
+                model_dict[model][cell] = model_instance
+        return model_dict
+
+    
+    def set_model_bounds(self, model, bounds):
+        if model in self.model_dict:
+            for cell in range(self.cell_range[0], self.cell_range[1] +1):
+                self.model_dict[model][cell].set_bounds(bounds)
+        else:
+            raise ValueError("model does not match supplied models")
+
+
+    def fit_all_models(self):
+        model_fits = {}
+        for model in self.models_to_fit:
+            model_fits[model] = {}
+
+        for cell in range(self.cell_range[0], self.cell_range[1] +1):
+            for model in self.models_to_fit:
+                model_instance = self.model_dict[model][cell]
                 model_fits[model][cell] = getattr(self.analysis_dict[cell], "fit_model")(model_instance)
         self.model_fits = model_fits
         return model_fits
@@ -82,8 +130,6 @@ class AnalysisPipeline(object):
     def compare_models(self, model_min, model_max):
         for cell in range(self.cell_range[0], self.cell_range[1] +1):
             plotter = CellPlot(self.analysis_dict[cell])
-
-
             min_model = self.model_fits[model_min][cell]
             max_model = self.model_fits[model_max][cell]
 
@@ -100,8 +146,6 @@ class AnalysisPipeline(object):
 
             plotter.plot_cat_fit(extracted_model)
             plt.show()
-
-
 
         print("TIME IS")
         print(time.time() - self.time_start)

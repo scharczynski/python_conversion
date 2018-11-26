@@ -85,12 +85,14 @@ class DataProcessor(object):
 
 
             self.time_spikes_binned = self.bin_spikes("time")
-            # self.time_spikes_binned = self.bin_spikes_time()
+            #self.time_spikes_binned = self.bin_spikes_time()
             self.time_spikes_summed = self.sum_spikes("time")
+            #self.time_spikes_summed = self.sum_old()
             self.time_spikes_summed_cat = self.sum_spikes_conditions("time")
             # test = self.sum_old()
             # plt.plot(test[0])
             # plt.show()
+
         
 
         if data_descriptor.pos_info is not None:
@@ -347,6 +349,7 @@ class DataProcessor(object):
                 for spike in self.spikes[cell][trial]:
                     spike_count += 1
                     index = int(spike * 1000)
+                    #this here is specifically for the weird dataset
                     pos_time = int(self.position_data[:,0].flat[np.abs(self.position_data[:,0] - index).argmin()])
                     pos_index = np.where(self.position_data[:,0] == pos_time)
                     spike_pos_x = self.position_data[pos_index[0], 1][0]

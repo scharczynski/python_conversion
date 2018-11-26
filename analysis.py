@@ -51,13 +51,18 @@ class AnalyzeCell(object):
 
     def __init__(self, cell_no, data_processor, subsample):
         self.subsample = subsample
+        self.time_info = data_processor.data_descriptor.time_info
+        self.pos_info = data_processor.data_descriptor.pos_info
+        self.cell_no = cell_no
+
+        #if subsampling is applied, random trials are selected
         if subsample:
-            sampled_trials = self.subsample_trials(data_processor.num_trials, subsample)
+            sampled_trials = self.subsample_trials(data_processor.num_trials[cell_no], subsample)
             self.num_trials = len(sampled_trials)
         else:
             self.num_trials = data_processor.num_trials[cell_no]
-        self.cell_no = cell_no
 
+        #gathering various spike data if available
         if data_processor.data_descriptor.pos_info is not None:
             if subsample:
                 self.position_spikes_binned = self.apply_subsample(
@@ -81,11 +86,14 @@ class AnalyzeCell(object):
             else:
                 self.time_spikes_binned = data_processor.time_spikes_binned[cell_no]
             self.time_spikes_summed = data_processor.time_spikes_summed[cell_no]
-            self.time_spikes_summed_cat = data_processor.time_spikes_summed_cat[cell_no]
+            #test if this condition is required
+            if data_processor.data_descriptor.num_conditions:
+                self.time_spikes_summed_cat = data_processor.time_spikes_summed_cat[cell_no]
         else:
             self.time_spikes_binned = None
             self.time_spikes_summed = None
 
+        #transform condition dictionary into required format
         conditions_dict = data_processor.conditions_dict
 
         if data_processor.num_conditions:
@@ -97,13 +105,8 @@ class AnalyzeCell(object):
         else:
             self.conditions = None
 
-        self.time_info = data_processor.data_descriptor.time_info
-        self.pos_info = data_processor.data_descriptor.pos_info
-
-
 
     def apply_subsample(self, spikes, sampled_trials):
-
         return spikes[sampled_trials, :]
         
     def subsample_trials(self, num_trials, subsample):
@@ -120,14 +123,14 @@ class AnalyzeCell(object):
         return sampled_trials
 
 
-
     def fit_model(self, model):
         print(self.cell_no)
+
+        #constant models at some point got stuck in "improvement" loop
         if isinstance(model, models.Const):
             model.fit_params()
         else:
-            self.iterate_fits(model, 1)
-            #model.fit_params()
+            self.iterate_fits(model, 3)
             
         return model
 
@@ -144,10 +147,10 @@ class AnalyzeCell(object):
 
     def iterate_fits(self, model, n):
         iteration = 0
-        #fun_min = math.inf
         fun_min = sys.float_info.max
         while iteration < n:
             model.fit_params()
+            #check if the returned fit is better by at least a tiny amount
             if model.fun < (fun_min - fun_min * 0.0001):
                 fun_min = model.fun
                 params_min = model.fit
@@ -163,6 +166,7 @@ class AnalyzeCell(object):
 
     def hyp_rejection(self, p_threshold, llmin, llmax, inc_params):
         lr = self.likelihood_ratio(llmin, llmax)
+        #this test was chosen somewhat arbitrarily, sf is the survival function
         p = chi2.sf(lr, inc_params)
         print(llmin, llmax, inc_params)
         print("p-value is: " + str(p))

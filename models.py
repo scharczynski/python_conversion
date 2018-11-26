@@ -65,15 +65,24 @@ class Model(object):
         self.time_info = data['time_info']
         self.total_bins = round(
             (self.time_info.region_high - self.time_info.region_low) / (self.time_info.region_bin))
-        self.t = np.linspace(
-            self.time_info.region_low/1000,
-            self.time_info.region_high/1000,
-            self.total_bins)
-        self.fit = None
-        self.fun = None
-        self.bounds = None
-        self.lb = None
-        self.ub = None
+
+        #currently a hack to deal with time data given in seconds
+        if self.time_info.converted:
+            self.time_info.region_low /= 1000
+            self.time_info.region_high /= 1000
+            self.time_info.region_bin /= 1000
+            self.time_info.converted = False
+
+        self.t = np.arange(
+            self.time_info.region_low,
+            self.time_info.region_high,
+            self.time_info.region_bin)
+
+        # self.fit = None
+        # self.fun = None
+        # self.bounds = None
+        # self.lb = None
+        # self.ub = None
 
     def fit_params(self):
         """Fit model paramters using Particle Swarm Optimization then SciPy's minimize.
@@ -86,8 +95,9 @@ class Model(object):
         """
         fit_pso, fun_pso = pso(
             self.build_function,
-            self.lb, self.ub,
-            maxiter=800,
+            self.lb, 
+            self.ub,
+            maxiter=800, #800 is arbitrary, doesn't seem to get reached
             f_ieqcons=self.pso_con
         )
         second_pass_res = minimize(
@@ -171,24 +181,34 @@ class Time(Model):
         self.spikes = data['spikes_time']
         self.name = "time"
         self.num_params = 4
-        self.ut = None
-        self.st = None
-        self.a = None
-        self.o = None
+        self.region = self.t
+        self.model_type = "time"
+        # self.ut = None
+        # self.st = None
+        # self.a = None
+        # self.o = None
+
         n = 2
-        mean_delta = 0.10 * (self.time_info.region_high/1000 -
-                             self.time_info.region_low/1000)
+        mean_delta = 0.10 * (self.time_info.region_high -
+                             self.time_info.region_low)
         mean_bounds = (
-            (self.time_info.region_low/1000 - mean_delta),
-            (self.time_info.region_high/1000 + mean_delta))
-        bounds = ((0.001, 1 / n), mean_bounds, (0.01, 5.0), (10**-10, 1 / n))
+            (self.time_info.region_low - mean_delta),
+            (self.time_info.region_high + mean_delta))
+        # mean_delta = 0.10 * (self.time_info.region_high -
+        #     self.time_info.region_low)
+        # mean_bounds = (
+        #     (self.time_info.region_low - mean_delta),
+        #     (self.time_info.region_high + mean_delta))
+        # bounds = ((0.001, 1 / n), mean_bounds, (0.01, 5.0), (10**-10, 1 / n))
         #bounds = ((0.001, 1 / n), (-500, 2500), (0.01, 500), (10**-10, 1 / n))
         #bounds = ((0.001, 1 / n), mean_bounds, (0.01, 2000), (10**-10, 1 / n))
 
 
-        self.set_bounds(bounds)
+
+        # self.set_bounds(bounds)
 
     def build_function(self, x):
+        #pso stores params in vector x
         a, ut, st, o = x[0], x[1], x[2], x[3]
  
         self.function = (
@@ -200,12 +220,6 @@ class Time(Model):
     def fit_params(self):
         super().fit_params()
         return (self.fit, self.fun)
-
-    def update_params(self):
-        self.ut = self.fit[0]
-        self.st = self.fit[1]
-        self.a = self.fit[2]
-        self.o = self.fit[3]
 
     def pso_con(self, x):
         return 1 - (x[0] + x[3])
@@ -242,6 +256,8 @@ class Const(Model):
         super().__init__(data)
         self.o = None
         self.spikes = data['spikes_time']
+        self.model_type = "time"
+        self.region = self.t
 
         self.name = "constant"
         self.num_params = 1
@@ -355,9 +371,6 @@ class CatSetTime(Model):
 
         plt.plot(t, fun)
 
-    def plot_raster(self, bin_spikes):
-        ax = sns.heatmap(bin_spikes)
-
 
 class CatTime(Model):
 
@@ -400,6 +413,9 @@ class CatTime(Model):
     def __init__(self, data):
         super().__init__(data)
         self.name = "category_time"
+        self.region = self.t
+        self.model_type = "time"
+        #t ends up needing to include trial dimension due to condition setup
         self.t = np.tile(self.t, (data["num_trials"], 1))
         self.conditions = data["conditions"]
         self.spikes = data['spikes_time']
@@ -413,11 +429,11 @@ class CatTime(Model):
         self.bounds = "manually define!"
         self.num_params = 7
         n = 5
-        mean_delta = 0.10 * (self.time_info.region_high/1000 -
-                             self.time_info.region_low/1000)
+        mean_delta = 0.10 * (self.time_info.region_high -
+                             self.time_info.region_low)
         mean_bounds = (
-            (self.time_info.region_low/1000 - mean_delta),
-            (self.time_info.region_high/1000 + mean_delta))
+            (self.time_info.region_low - mean_delta),
+            (self.time_info.region_high + mean_delta))
         bounds = (mean_bounds, (0.01, 5.0), (10**-10, 1 / n), (0.001, 1 / n), (0.001, 1 / n), (0.001, 1 / n), (0.001, 1 / n),)        
         self.set_bounds(bounds)
 
