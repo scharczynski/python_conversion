@@ -7,6 +7,9 @@ import time_info
 import os
 import math
 from describe_data import DescribeData
+from region_info import RegionInfo
+import sys
+import seaborn as sns
 
 
 class DataProcessor(object):
@@ -74,9 +77,25 @@ class DataProcessor(object):
 
         self.conditions_dict = self.associate_conditions()
         
-
-
-        if data_descriptor.time_info is not None:
+        # if time_info is not provided, a default window will be constructed
+        # based off the min and max values found in the data
+        if data_descriptor.time_info is None:
+            max_time = sys.float_info.min
+            min_time = sys.float_info.max
+            for cell in self.spikes.keys():
+                for trial in self.spikes[cell]:
+                    for t in trial:
+                        if t > max_time:
+                            max_time = t
+                        if t < min_time:
+                            min_time = t
+              
+            self.time_high_ms = max_time
+            self.time_low_ms = min_time
+            self.time_bin_ms = 1.0
+            self.time_info = RegionInfo(self.time_low_ms, self.time_high_ms, 1.0)
+            self.data_descriptor.time_info = self.time_info
+        else:
             self.time_info = data_descriptor.time_info
             self.time_high_ms = data_descriptor.time_info.region_high 
             self.time_low_ms = data_descriptor.time_info.region_low 
@@ -84,10 +103,15 @@ class DataProcessor(object):
             self.total_time_bins = data_descriptor.time_info.total_bins
 
 
+        if self.time_info is not None:
             self.time_spikes_binned = self.bin_spikes("time")
             #self.time_spikes_binned = self.bin_spikes_time()
+            # plt.plot(self.time_spikes_binned[70][0])
+        
+            # plt.show()
             self.time_spikes_summed = self.sum_spikes("time")
-            #self.time_spikes_summed = self.sum_old()
+            # plt.plot(self.time_spikes_summed[70])
+            # plt.show()
             self.time_spikes_summed_cat = self.sum_spikes_conditions("time")
             # test = self.sum_old()
             # plt.plot(test[0])
@@ -102,10 +126,11 @@ class DataProcessor(object):
             self.pos_bin = data_descriptor.pos_info.region_bin  
             self.total_pos_bins = data_descriptor.pos_info.total_bins
 
-            self.position_spikes_binned = self.bin_spikes("position")
-            self.position_spikes_summed = self.sum_spikes("position")
-            self.position_spikes_summed_cat = self.sum_spikes_conditions("position")
+            self.position_spikes_binned = self.bin_spikes_position()
 
+            self.position_spikes_summed = self.sum_spikes("position")
+            
+            self.position_spikes_summed_cat = self.sum_spikes_conditions("position")
 
 
         #self.summed_spikes_condition = self.sum_spikes_conditions()
@@ -131,6 +156,8 @@ class DataProcessor(object):
                 spikes[i] = np.load(spike_path, encoding="bytes")
             if units == "s":
                 spikes = {k: v * 1000 for k, v in spikes.items()}
+                # spikes = {k: np.multiply(v, 1000 for k, v in spikes.items()}
+
         else:
             print("Spikes folder not found.")
         return spikes
@@ -192,10 +219,6 @@ class DataProcessor(object):
         -------
         dict (int: numpy.ndarray of int)
             Summed spike data.
-
-        Todo:
-        ----
-        It may be correct here to normalize against number of trials.
 
         """
         if spike_type == "time":
@@ -286,10 +309,12 @@ class DataProcessor(object):
             spikes_binned[cell] = np.zeros((self.num_trials[cell], region_info.total_bins))
 
             for trial_index, trial in enumerate(self.spikes[cell]):
-                if type(trial) is np.ndarray:
-                    for value in trial:
-                        if value < region_info.region_high and value >= region_info.region_low:
-                            spikes_binned[cell][trial_index][int(value - region_info.region_low)] = 1
+                if type(trial) is float or type(trial) is int:
+                    trial = [trial]
+                # if type(trial) is np.ndarray:
+                for value in trial:
+                    if value < region_info.region_high and value >= region_info.region_low:
+                        spikes_binned[cell][trial_index][int(value - region_info.region_low)] = 1
         
         return spikes_binned
 
@@ -348,12 +373,17 @@ class DataProcessor(object):
                 spike_count = 0
                 for spike in self.spikes[cell][trial]:
                     spike_count += 1
-                    index = int(spike * 1000)
+                    # index = int(spike * 1000)
+                    # index = int(spike / 1000)
+                    index = spike / 1000
+
                     #this here is specifically for the weird dataset
                     pos_time = int(self.position_data[:,0].flat[np.abs(self.position_data[:,0] - index).argmin()])
                     pos_index = np.where(self.position_data[:,0] == pos_time)
                     spike_pos_x = self.position_data[pos_index[0], 1][0]
                     spike_pos_cells[cell][trial][spike_count] = spike_pos_x
+                    # print(self.position_data[509, 1])
+
 
         min_x = min(self.position_data[:,1])
         min_y = min(self.position_data[:,2])

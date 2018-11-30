@@ -135,8 +135,14 @@ class AnalysisPipeline(object):
 
             print(min_model.fit)
             print(max_model.fit)
+            print(
+                self.analysis_dict[cell].compare_models(
+                    min_model, max_model))
             plotter.plot_comparison(min_model, max_model)
+            print("TIME IS")
+            print(time.time() - self.time_start)
             plt.show()
+
 
     def show_condition_fit(self, model):
         for cell in range(self.cell_range[0], self.cell_range[1] +1):
@@ -147,5 +153,4 @@ class AnalysisPipeline(object):
             plotter.plot_cat_fit(extracted_model)
             plt.show()
 
-        print("TIME IS")
-        print(time.time() - self.time_start)
+

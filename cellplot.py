@@ -28,10 +28,11 @@ class CellPlot(object):
         # self.x = np.linspace(self.pos_info.region_low, self.pos_info.region_high, self.pos_info.total_bins)
 
     def plot_raster(self, condition=0):
+        cmap = sns.cm.rocket_r
         if condition:
             ax = sns.heatmap(self.time_spikes_binned.T * self.conditions[condition])
         else:
-            ax = sns.heatmap(self.time_spikes_binned.T)
+            ax = sns.heatmap(self.analysis.time_spikes_binned, cmap=cmap)
 
     def plot_cat_fit(self, model):
         fig = plt.figure()
@@ -52,13 +53,14 @@ class CellPlot(object):
     def plot_comparison(self, model_min, model_max):
         fig = plt.figure()
         fig.suptitle("cell " + str(self.cell_no))
+        plt.subplot(2,1,1)
         self.plot_fit(model_min)
         #plt.plot(self.t, self.smooth_spikes(self.time_spikes_summed), label="spike_train")
         plt.plot(model_max.region, self.smooth_spikes(self.get_model_sum(model_max)), label="spike_train")
-
         self.plot_fit(model_max)
         plt.legend(loc="upper left")
-
+        plt.subplot(2,1,2)
+        self.plot_raster()
         fig_name = "figs/cell_%d_" + model_min.name + "_" + model_max.name + ".png"
         fig.savefig(fig_name % self.cell_no)
 

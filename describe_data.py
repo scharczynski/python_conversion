@@ -8,7 +8,7 @@ class DescribeData(object):
         self.time_units = time_units
         self.num_cells = num_cells
         self.num_conditions = num_conditions
-
+        
         if "time_info" in regions.keys():
             self.time_info = regions["time_info"]
             if self.time_units == "s":

@@ -72,7 +72,8 @@ class AnalyzeCell(object):
             else:
                 self.position_spikes_binned = data_processor.position_spikes_binned[cell_no]
             self.position_spikes_summed = data_processor.position_spikes_summed[cell_no]
-            self.position_spikes_summed_cat = data_processor.position_spikes_summed_cat[cell_no]
+            if data_processor.data_descriptor.num_conditions:
+                self.position_spikes_summed_cat = data_processor.position_spikes_summed_cat[cell_no]
         else:
             self.position_spikes_binned = None
             self.position_spikes_summed = None       
@@ -130,10 +131,14 @@ class AnalyzeCell(object):
         if isinstance(model, models.Const):
             model.fit_params()
         else:
-            self.iterate_fits(model, 3)
-            
+            self.iterate_fits(model, 5)
+        if model.name is "time":
+            self.save_fit_params(model)
+        
         return model
 
+    def save_fit_params(self, model):
+        np.save(("cell_" + str(self.cell_no) + "_" + model.name + "_results"), model.fit)
    
     def compare_models(self, model_min, model_max):
         llmin = model_min.fun

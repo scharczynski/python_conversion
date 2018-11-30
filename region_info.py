@@ -1,3 +1,6 @@
+import numpy as np
+
+
 class RegionInfo(object):
     def __init__(self, region_low, region_high, region_bin):
         self.region_low = region_low
@@ -13,4 +16,10 @@ class RegionInfo(object):
         self.converted = True
 
     def calc_bins(self):
-        return round((self.region_high- self.region_low) / (self.region_bin))
+        #return round((self.region_high- self.region_low) / (self.region_bin))
+        return len(np.arange(
+            self.region_low,
+            self.region_high,
+            self.region_bin))
+
+    
