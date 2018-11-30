@@ -1,10 +1,14 @@
 import numpy as np
+import os
+import matplotlib as mpl
+if os.environ.get('DISPLAY','') == '':
+    print('no display found. Using non-interactive Agg backend')
+    mpl.use('Agg')
 import matplotlib.pyplot as plt
 import parse_matlab_data
 import time
 import pandas
 import time_info
-import os
 import math
 from describe_data import DescribeData
 from region_info import RegionInfo
