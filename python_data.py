@@ -68,7 +68,8 @@ class DataProcessor(object):
     def __init__(self, data_descriptor):
         self.data_descriptor = data_descriptor
         self.path = data_descriptor.path
-        self.cell_range = data_descriptor.cell_range
+        self.cell_range = data_descriptor.cell_range[:]
+        self.cell_range[1] += 2
         self.num_conditions = data_descriptor.num_conditions
         self.spikes = self.extract_spikes(data_descriptor.time_units)
         self.num_trials = self.extract_num_trials()

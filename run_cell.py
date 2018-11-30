@@ -6,9 +6,12 @@ from analysis_pipeline import AnalysisPipeline
 
 
 cell_range = sys.argv[-2:]
+cell_range = list(map(int, cell_range))
+# print((cell_range))
+
 
 # path_to_data = '/Users/stevecharczynski/workspace/brincat_miller'
-path_to_data = "/usr3/bustaff/scharcz/workspace/brincat_miller/",
+path_to_data = "/usr3/bustaff/scharcz/workspace/brincat_miller/"
 time_info = RegionInfo(500, 1750, 1.0)
 data_descriptor = DescribeData(path_to_data, False, "ms", cell_range, 0, time_info=time_info)
 data_processor = DataProcessor(data_descriptor)
