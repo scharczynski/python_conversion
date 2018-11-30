@@ -16,7 +16,6 @@ import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 import seaborn as sns
 from math import isnan
-import pyswarms as ps
 
 
 class Model(object):
