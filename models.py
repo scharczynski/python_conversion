@@ -97,6 +97,9 @@ class Model(object):
             self.build_function,
             self.lb, 
             self.ub,
+            phip=0.5,
+            phig=0.5,
+            omega=0.8,
             maxiter=800, #800 is arbitrary, doesn't seem to get reached
             f_ieqcons=self.pso_con
         )

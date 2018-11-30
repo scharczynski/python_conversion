@@ -3,6 +3,7 @@ import numpy as np
 import seaborn as sns
 import scipy.signal
 from models import Const
+import matplotlib as mpl
 
 
 class CellPlot(object):
@@ -28,14 +29,29 @@ class CellPlot(object):
         # self.x = np.linspace(self.pos_info.region_low, self.pos_info.region_high, self.pos_info.total_bins)
 
     def plot_raster(self, condition=0):
-        cmap = sns.cm.rocket_r
+        # cmap = sns.cm.rocket_r
         if condition:
             ax = sns.heatmap(self.time_spikes_binned.T * self.conditions[condition])
         else:
-            ax = sns.heatmap(self.analysis.time_spikes_binned, cmap=cmap)
+            # fig, ax = plt.subplots()
+
+            # cmap = mpl.colors.ListedColormap(['r', 'k'])
+            # bounds = [0., 0.5, 1.]
+            # norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
+
+            # plot it
+
+            # ax.imshow(self.analysis.time_spikes_binned, interpolation='none', cmap=cmap, norm=norm)
+            # plt.matshow(self.analysis.time_spikes_binned, fignum=False, aspect="auto", cmap="Greys")
+            scatter_data = np.nonzero(self.analysis.time_spikes_binned.T)
+            plt.scatter(scatter_data[0], scatter_data[1], c=[[0,0,0]], marker="o", s=1)
+            # plt.imshow(self.analysis.time_spikes_binned, aspect="auto", cmap="Greys")
+
+            # ax = sns.heatmap(self.analysis.time_spikes_binned, cmap=cmap)
 
     def plot_cat_fit(self, model):
         fig = plt.figure()
+        
         num_conditions = len(model.conditions.keys())
         fig.suptitle("cell " + str(self.cell_no))
 
@@ -52,6 +68,7 @@ class CellPlot(object):
 
     def plot_comparison(self, model_min, model_max):
         fig = plt.figure()
+
         fig.suptitle("cell " + str(self.cell_no))
         plt.subplot(2,1,1)
         self.plot_fit(model_min)

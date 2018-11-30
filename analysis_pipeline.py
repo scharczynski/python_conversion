@@ -141,7 +141,7 @@ class AnalysisPipeline(object):
             plotter.plot_comparison(min_model, max_model)
             print("TIME IS")
             print(time.time() - self.time_start)
-            plt.show()
+            # plt.show()
 
 
     def show_condition_fit(self, model):

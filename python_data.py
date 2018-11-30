@@ -68,7 +68,7 @@ class DataProcessor(object):
     def __init__(self, data_descriptor):
         self.data_descriptor = data_descriptor
         self.path = data_descriptor.path
-        self.num_cells = data_descriptor.num_cells
+        self.cell_range = data_descriptor.cell_range
         self.num_conditions = data_descriptor.num_conditions
         self.spikes = self.extract_spikes(data_descriptor.time_units)
         self.num_trials = self.extract_num_trials()
@@ -151,7 +151,7 @@ class DataProcessor(object):
         """
         spikes = {}
         if os.path.exists(self.path + "/spikes/"):
-            for i in range(self.num_cells):
+            for i in range(*self.cell_range):
                 spike_path = self.path + '/spikes/%d.npy' % i
                 spikes[i] = np.load(spike_path, encoding="bytes")
             if units == "s":
@@ -230,13 +230,13 @@ class DataProcessor(object):
             return None
 
         summed_spikes = {}
-        for cell in range(self.num_cells):
+        for cell in range(*self.cell_range):
             summed_spikes[cell] = np.sum(spikes[cell], 0)
         return summed_spikes
 
     def sum_old(self):
         summed_spikes = {}
-        for cell in range(self.num_cells):
+        for cell in range(*self.cell_range):
             # print(self.time_spikes_binned[cell])
             # print(np.sum(self.time_spikes_binned[cell], 1))
             summed_spikes[cell] = np.sum(self.time_spikes_binned[cell], 0)
@@ -270,7 +270,7 @@ class DataProcessor(object):
 
             summed_spikes_condition = {}
                 
-            for cell in range(self.num_cells):
+            for cell in range(*self.cell_range):
                 summed_spikes_condition[cell] = {}
                 for condition in range(self.num_conditions):
                     summed_spikes_condition[cell][condition+1] = {}
@@ -289,7 +289,7 @@ class DataProcessor(object):
 
         """
         time_spikes_binned = {}
-        for cell in range(self.num_cells):
+        for cell in range(*self.cell_range):
             time_spikes_binned[cell] = np.zeros((self.num_trials[cell], self.total_time_bins))
 
             for trial_index, trial in enumerate(self.spikes[cell]):
@@ -332,7 +332,7 @@ class DataProcessor(object):
             return None
         else:
             conditions_dict = {}
-            for cell in range(self.num_cells):
+            for cell in range(*self.cell_range):
                 cond = self.conditions[cell][0:self.num_trials[cell]]
                 for i in range(self.num_conditions):
                     conditions_dict[i + 1, cell] = np.zeros([self.num_trials[cell]])
@@ -367,7 +367,7 @@ class DataProcessor(object):
                 if len(i) > max_trial:
                     max_trial = len(i)
             
-        for cell in range(self.num_cells):
+        for cell in range(*self.cell_range):
             spike_pos_cells[cell] = np.zeros((self.num_trials[cell], max_trial+1))
             for trial in range(self.num_trials[cell]):
                 spike_count = 0
@@ -391,7 +391,7 @@ class DataProcessor(object):
         max_y = max(self.position_data[:,2])
 
         position_spike = {}
-        for cell in range(self.num_cells):
+        for cell in range(*self.cell_range):
             position_spike[cell] = np.zeros((self.num_trials[cell], int(max_x+1)))
             for trial in range(self.num_trials[cell]):
                 for spike_pos in spike_pos_cells[cell][trial]:
@@ -403,7 +403,7 @@ class DataProcessor(object):
     def sum_position_spikes(self):
 
         summed_position_spikes = {}
-        for cell in range(self.num_cells):
+        for cell in range(*self.cell_range):
             # print(self.time_spikes_binned[cell])
             # print(np.sum(self.time_spikes_binned[cell], 1))
             summed_position_spikes[cell] = np.sum(self.position_spikes_binned[cell], 0)

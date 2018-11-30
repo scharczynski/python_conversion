@@ -1,12 +1,12 @@
 
 class DescribeData(object):
 
-    def __init__(self, path, has_position, time_units, num_cells, num_conditions, **regions):
+    def __init__(self, path, has_position, time_units, cell_range, num_conditions, **regions):
 
         self.path = path
         self.has_position = has_position
         self.time_units = time_units
-        self.num_cells = num_cells
+        self.cell_range = cell_range
         self.num_conditions = num_conditions
         
         if "time_info" in regions.keys():
