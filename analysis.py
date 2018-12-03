@@ -138,7 +138,7 @@ class AnalyzeCell(object):
         return model
 
     def save_fit_params(self, model):
-        np.save(("/usr3/bustaff/scharcz/workspace/cell_" + str(self.cell_no) + "_" + model.name + "_results"), model.fit)
+        np.save(("/usr3/bustaff/scharcz/workspace/fit_results/cell_" + str(self.cell_no) + "_" + model.name + "_results"), model.fit)
    
     def compare_models(self, model_min, model_max):
         llmin = model_min.fun
