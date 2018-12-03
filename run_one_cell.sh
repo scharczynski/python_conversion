@@ -5,4 +5,4 @@
 
 module load python3
 
-python3 run_cell.py $1
+python3 run_cell.py $1 $1
