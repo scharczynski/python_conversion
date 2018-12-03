@@ -22,7 +22,7 @@ mean_bounds = (
     (time_info.region_low - mean_delta),
     (time_info.region_high + mean_delta))
 
-bounds = ((0.001, 1 / n), mean_bounds, (1, 1000), (10**-10, 1 / n))
+bounds = ((0.001, 1 / n), mean_bounds, (10, 1000), (10**-10, 1 / n))
 pipeline = AnalysisPipeline(cell_range, data_processor, ["Const", "Time"], 0)
 pipeline.set_model_bounds("Time", bounds)
 
