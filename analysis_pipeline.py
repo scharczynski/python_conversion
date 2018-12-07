@@ -40,7 +40,8 @@ class AnalysisPipeline(object):
 
     def __init__(self, cell_range, data_processor, models, subsample):
         self.time_start = time.time()
-        self.cell_range = cell_range
+        self.cell_range = cell_range[:]
+        self.cell_range[1] += 1
         self.data_processor = data_processor
         self.time_info = data_processor.time_info
         self.models_to_fit = models
@@ -54,7 +55,7 @@ class AnalysisPipeline(object):
 
     def make_analysis(self):
         analysis_dict = {}
-        for cell in range(self.cell_range[0], self.cell_range[1] +1):
+        for cell in range(*self.cell_range):
             analysis_dict[cell] = AnalyzeCell(
                 cell, self.data_processor, self.subsample)
         return analysis_dict
@@ -88,7 +89,7 @@ class AnalysisPipeline(object):
         model_dict = {}
         for model in self.models_to_fit:
             model_dict[model] = {}
-        for cell in range(self.cell_range[0], self.cell_range[1] +1):
+        for cell in range(*self.cell_range):
             for model in self.models_to_fit:
 
                 #data passed here is manually selected by what models need
@@ -109,7 +110,7 @@ class AnalysisPipeline(object):
     
     def set_model_bounds(self, model, bounds):
         if model in self.model_dict:
-            for cell in range(self.cell_range[0], self.cell_range[1] +1):
+            for cell in range(*self.cell_range):
                 self.model_dict[model][cell].set_bounds(bounds)
         else:
             raise ValueError("model does not match supplied models")
@@ -120,7 +121,7 @@ class AnalysisPipeline(object):
         for model in self.models_to_fit:
             model_fits[model] = {}
 
-        for cell in range(self.cell_range[0], self.cell_range[1] +1):
+        for cell in range(*self.cell_range):
             for model in self.models_to_fit:
                 model_instance = self.model_dict[model][cell]
                 model_fits[model][cell] = getattr(self.analysis_dict[cell], "fit_model")(model_instance)
@@ -128,7 +129,7 @@ class AnalysisPipeline(object):
         return model_fits
 
     def compare_models(self, model_min, model_max):
-        for cell in range(self.cell_range[0], self.cell_range[1] +1):
+        for cell in range(*self.cell_range):
             plotter = CellPlot(self.analysis_dict[cell])
             min_model = self.model_fits[model_min][cell]
             max_model = self.model_fits[model_max][cell]
@@ -141,11 +142,11 @@ class AnalysisPipeline(object):
             plotter.plot_comparison(min_model, max_model)
             print("TIME IS")
             print(time.time() - self.time_start)
-            # plt.show()
+            plt.show()
 
 
     def show_condition_fit(self, model):
-        for cell in range(self.cell_range[0], self.cell_range[1] +1):
+        for cell in range(*self.cell_range):
             plotter = CellPlot(self.analysis_dict[cell])
 
             extracted_model = self.model_fits[model][cell]

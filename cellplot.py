@@ -52,10 +52,10 @@ class CellPlot(object):
     def plot_cat_fit(self, model):
         fig = plt.figure()
         
-        num_conditions = len(model.conditions.keys())
+        num_conditions = len(model.conditions)
         fig.suptitle("cell " + str(self.cell_no))
 
-        for condition in model.conditions.keys():
+        for condition in model.conditions:
             plt.subplot(2, num_conditions, condition + 1)
             plt.plot(model.region, model.expose_fit(condition), label="fit")
             plt.plot(model.region, self.smooth_spikes(self.get_model_sum(model, True)[condition]), label="spike_train")

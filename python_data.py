@@ -73,7 +73,7 @@ class DataProcessor(object):
         self.data_descriptor = data_descriptor
         self.path = data_descriptor.path
         self.cell_range = data_descriptor.cell_range[:]
-        self.cell_range[1] += 2
+        self.cell_range[1] += 1
         self.num_conditions = data_descriptor.num_conditions
         self.spikes = self.extract_spikes(data_descriptor.time_units)
         self.num_trials = self.extract_num_trials()
@@ -87,7 +87,7 @@ class DataProcessor(object):
         if data_descriptor.time_info is None:
             max_time = sys.float_info.min
             min_time = sys.float_info.max
-            for cell in self.spikes.keys():
+            for cell in self.spikes:
                 for trial in self.spikes[cell]:
                     for t in trial:
                         if t > max_time:
@@ -310,7 +310,7 @@ class DataProcessor(object):
         region_info = self.get_region(spike_type)
 
         spikes_binned = {}
-        for cell in self.spikes.keys():
+        for cell in self.spikes:
             spikes_binned[cell] = np.zeros((self.num_trials[cell], region_info.total_bins))
 
             for trial_index, trial in enumerate(self.spikes[cell]):
@@ -367,7 +367,7 @@ class DataProcessor(object):
     def bin_spikes_position(self):
         spike_pos_cells = {}
         max_trial = 0
-        for cell in self.spikes.keys():
+        for cell in self.spikes:
             for i in self.spikes[cell]:
                 if len(i) > max_trial:
                     max_trial = len(i)
