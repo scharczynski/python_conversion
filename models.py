@@ -98,7 +98,9 @@ class Model(object):
             self.ub,
             phip=0.5,
             phig=0.5,
-            omega=0.8,
+            omega=0.5,
+            minstep=1e-10,
+            minfunc=1e-10,
             maxiter=800, #800 is arbitrary, doesn't seem to get reached
             f_ieqcons=self.pso_con
         )
