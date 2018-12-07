@@ -3,6 +3,7 @@ import models
 import time
 import matplotlib.pyplot as plt 
 from cellplot import CellPlot
+import numpy as np
 
 
 class AnalysisPipeline(object):
@@ -117,22 +118,23 @@ class AnalysisPipeline(object):
 
 
     def fit_all_models(self):
-        model_fits = {}
-        for model in self.models_to_fit:
-            model_fits[model] = {}
+        # model_fits = {}
+        # for model in self.models_to_fit:
+        #     model_fits[model] = {}
 
         for cell in range(*self.cell_range):
-            for model in self.models_to_fit:
+            for model in self.model_dict:
                 model_instance = self.model_dict[model][cell]
-                model_fits[model][cell] = getattr(self.analysis_dict[cell], "fit_model")(model_instance)
-        self.model_fits = model_fits
-        return model_fits
+                getattr(self.analysis_dict[cell], "fit_model")(model_instance)
+                np.save(("/usr3/bustaff/scharcz/workspace/fit_results/cell_" + 
+                    str(cell) + "_" + model.name + "_results"), model_instance.fit)
+
 
     def compare_models(self, model_min, model_max):
         for cell in range(*self.cell_range):
             plotter = CellPlot(self.analysis_dict[cell])
-            min_model = self.model_fits[model_min][cell]
-            max_model = self.model_fits[model_max][cell]
+            min_model = self.model_dict[model_min][cell]
+            max_model = self.model_dict[model_max][cell]
 
             print(min_model.fit)
             print(max_model.fit)
