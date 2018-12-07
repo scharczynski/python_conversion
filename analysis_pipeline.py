@@ -127,7 +127,7 @@ class AnalysisPipeline(object):
                 model_instance = self.model_dict[model][cell]
                 getattr(self.analysis_dict[cell], "fit_model")(model_instance)
                 np.save("/usr3/bustaff/scharcz/workspace/fit_results/cell_" + 
-                    str(cell) + "_" + model.name + "_results_" + time.time(), model_instance.fit)
+                    str(cell) + "_" + model_instance.name + "_results_" + time.time(), model_instance.fit)
 
 
     def compare_models(self, model_min, model_max):
