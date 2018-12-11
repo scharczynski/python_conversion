@@ -132,8 +132,8 @@ class AnalyzeCell(object):
             model.fit_params()
         else:
             self.iterate_fits(model, 10)
-        if model.name is "time":
-            self.save_fit_params(model)
+        # if model.name is "time":
+        #     self.save_fit_params(model)
         
         return model
 

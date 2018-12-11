@@ -16,7 +16,6 @@ class RegionInfo(object):
         self.converted = True
 
     def calc_bins(self):
-        #return round((self.region_high- self.region_low) / (self.region_bin))
         return len(np.arange(
             self.region_low,
             self.region_high,

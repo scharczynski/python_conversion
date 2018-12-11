@@ -187,29 +187,6 @@ class Time(Model):
         self.num_params = 4
         self.region = self.t
         self.model_type = "time"
-        # self.ut = None
-        # self.st = None
-        # self.a = None
-        # self.o = None
-
-        n = 2
-        mean_delta = 0.10 * (self.time_info.region_high -
-                             self.time_info.region_low)
-        mean_bounds = (
-            (self.time_info.region_low - mean_delta),
-            (self.time_info.region_high + mean_delta))
-        # mean_delta = 0.10 * (self.time_info.region_high -
-        #     self.time_info.region_low)
-        # mean_bounds = (
-        #     (self.time_info.region_low - mean_delta),
-        #     (self.time_info.region_high + mean_delta))
-        # bounds = ((0.001, 1 / n), mean_bounds, (0.01, 5.0), (10**-10, 1 / n))
-        #bounds = ((0.001, 1 / n), (-500, 2500), (0.01, 500), (10**-10, 1 / n))
-        #bounds = ((0.001, 1 / n), mean_bounds, (0.01, 2000), (10**-10, 1 / n))
-
-
-
-        # self.set_bounds(bounds)
 
     def build_function(self, x):
         #pso stores params in vector x
@@ -262,11 +239,8 @@ class Const(Model):
         self.spikes = data['spikes_time']
         self.model_type = "time"
         self.region = self.t
-
         self.name = "constant"
         self.num_params = 1
-        bounds = ((10**-10, 0.99),)
-        self.set_bounds(bounds)
 
     def build_function(self, x):
         o = x[0]

@@ -107,23 +107,11 @@ class DataProcessor(object):
             self.time_bin_ms = data_descriptor.time_info.region_bin
             self.total_time_bins = data_descriptor.time_info.total_bins
 
-
         if self.time_info is not None:
             self.time_spikes_binned = self.bin_spikes("time")
-            #self.time_spikes_binned = self.bin_spikes_time()
-            # plt.plot(self.time_spikes_binned[70][0])
-        
-            # plt.show()
             self.time_spikes_summed = self.sum_spikes("time")
-            # plt.plot(self.time_spikes_summed[70])
-            # plt.show()
             self.time_spikes_summed_cat = self.sum_spikes_conditions("time")
-            # test = self.sum_old()
-            # plt.plot(test[0])
-            # plt.show()
-
         
-
         if data_descriptor.pos_info is not None:
             self.pos_info = data_descriptor.pos_info
             self.pos_high = data_descriptor.pos_info.region_high 
@@ -132,19 +120,12 @@ class DataProcessor(object):
             self.total_pos_bins = data_descriptor.pos_info.total_bins
 
             self.position_spikes_binned = self.bin_spikes_position()
-
             self.position_spikes_summed = self.sum_spikes("position")
-            
             self.position_spikes_summed_cat = self.sum_spikes_conditions("position")
-
-
-        #self.summed_spikes_condition = self.sum_spikes_conditions()
 
     def get_region(self, type):
         return self.data_descriptor.get_region_info(type)
 
-
-    
     def extract_spikes(self, units):
         """Extracts spike times from data file and converts to miliseconds.
 
@@ -161,8 +142,6 @@ class DataProcessor(object):
                 spikes[i] = np.load(spike_path, encoding="bytes")
             if units == "s":
                 spikes = {k: v * 1000 for k, v in spikes.items()}
-                # spikes = {k: np.multiply(v, 1000 for k, v in spikes.items()}
-
         else:
             print("Spikes folder not found.")
         return spikes
@@ -242,8 +221,6 @@ class DataProcessor(object):
     def sum_old(self):
         summed_spikes = {}
         for cell in range(*self.cell_range):
-            # print(self.time_spikes_binned[cell])
-            # print(np.sum(self.time_spikes_binned[cell], 1))
             summed_spikes[cell] = np.sum(self.time_spikes_binned[cell], 0)
         return summed_spikes
 
@@ -272,9 +249,7 @@ class DataProcessor(object):
         if self.conditions is None:
             return None
         else:
-
             summed_spikes_condition = {}
-                
             for cell in range(*self.cell_range):
                 summed_spikes_condition[cell] = {}
                 for condition in range(self.num_conditions):
@@ -296,11 +271,9 @@ class DataProcessor(object):
         time_spikes_binned = {}
         for cell in range(*self.cell_range):
             time_spikes_binned[cell] = np.zeros((self.num_trials[cell], self.total_time_bins))
-
             for trial_index, trial in enumerate(self.spikes[cell]):
                 if type(trial) is np.ndarray:
                     for time in trial:
-
                         if time < self.time_high_ms and time >= self.time_low_ms:
                             time_spikes_binned[cell][trial_index][int(time - self.time_low_ms)] = 1
                         

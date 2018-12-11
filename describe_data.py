@@ -2,7 +2,6 @@
 class DescribeData(object):
 
     def __init__(self, path, has_position, time_units, cell_range, num_conditions, **regions):
-
         self.path = path
         self.has_position = has_position
         self.time_units = time_units
@@ -15,7 +14,6 @@ class DescribeData(object):
                 self.time_info.to_ms()
         else:
             self.time_info = None
-
         if "pos_info" in regions.keys():
             self.pos_info = regions["pos_info"]
         else:
@@ -24,7 +22,6 @@ class DescribeData(object):
 
 
     def get_region_info(self, info):
-
         if info == "time":
             return self.time_info
         elif info == "position":
