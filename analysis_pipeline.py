@@ -46,11 +46,9 @@ class AnalysisPipeline(object):
         self.data_processor = data_processor
         self.time_info = data_processor.time_info
         self.models_to_fit = models
-
         self.subsample = subsample
         self.analysis_dict = self.make_analysis()
         self.model_dict = self.make_models()
-
         self.subsample = subsample
         self.model_fits = None
 
@@ -60,31 +58,6 @@ class AnalysisPipeline(object):
             analysis_dict[cell] = AnalyzeCell(
                 cell, self.data_processor, self.subsample)
         return analysis_dict
-
-    # def fit_all(self):
-    #     model_fits = {}
-    #     for model in self.models:
-    #         model_fits[model] = {} 
-
-    #     for cell in range(self.cell_range[0], self.cell_range[1] +1):
-    #         for model in self.models:
-
-    #             #data passed here is manually selected by what models need
-    #             model_data = {}
-    #             model_data['spikes_time'] = self.analysis_dict[cell].time_spikes_binned
-    #             model_data['time_info'] = self.analysis_dict[cell].time_info
-    #             model_data['num_trials'] = self.analysis_dict[cell].num_trials
-    #             model_data['conditions'] = self.analysis_dict[cell].conditions
-    #             model_data['spikes_pos'] = self.analysis_dict[cell].position_spikes_binned
-    #             model_data['pos_info'] = self.analysis_dict[cell].pos_info
-
-    #             #this creates an instance of class "model" in the module "models"
-    #             model_instance = getattr(models, model)(model_data)
-    #             #this goes through analysis objects created previously and calls "fit_model" on
-    #             #newly created models
-    #             model_fits[model][cell] = getattr(self.analysis_dict[cell], "fit_model")(model_instance)
-    #     self.model_fits = model_fits
-    #     return model_fits
 
     def make_models(self):
         model_dict = {}
@@ -116,12 +89,7 @@ class AnalysisPipeline(object):
         else:
             raise ValueError("model does not match supplied models")
 
-
     def fit_all_models(self):
-        # model_fits = {}
-        # for model in self.models_to_fit:
-        #     model_fits[model] = {}
-
         for cell in range(*self.cell_range):
             for model in self.model_dict:
                 model_instance = self.model_dict[model][cell]
@@ -130,7 +98,6 @@ class AnalysisPipeline(object):
                 #     str(cell) + "_" + model_instance.name + "_results_" + str(time.time()), model_instance.fit)
                 np.save("/usr3/bustaff/scharcz/workspace/fit_results/cell_" + 
                     str(cell) + "_" + model_instance.name + "_results", model_instance.fit)
-
 
     def compare_models(self, model_min, model_max):
         for cell in range(*self.cell_range):
@@ -148,13 +115,10 @@ class AnalysisPipeline(object):
             print(time.time() - self.time_start)
             plt.show()
 
-
     def show_condition_fit(self, model):
         for cell in range(*self.cell_range):
             plotter = CellPlot(self.analysis_dict[cell])
-
             extracted_model = self.model_fits[model][cell]
-
             plotter.plot_cat_fit(extracted_model)
             plt.show()
 

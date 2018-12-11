@@ -237,7 +237,6 @@ class DataProcessor(object):
         Might be worth condensing this method with sum_spikes
 
         """
-
         if spike_type == "time":
             spikes = self.time_spikes_binned
         elif spike_type == "position":
@@ -281,11 +280,9 @@ class DataProcessor(object):
 
     def bin_spikes(self, spike_type):
         region_info = self.get_region(spike_type)
-
         spikes_binned = {}
         for cell in self.spikes:
             spikes_binned[cell] = np.zeros((self.num_trials[cell], region_info.total_bins))
-
             for trial_index, trial in enumerate(self.spikes[cell]):
                 if type(trial) is float or type(trial) is int:
                     trial = [trial]
