@@ -131,7 +131,7 @@ class AnalyzeCell(object):
         if isinstance(model, models.Const):
             model.fit_params()
         else:
-            self.iterate_fits(model, 5)
+            self.iterate_fits(model, 20)
         # if model.name is "time":
         #     self.save_fit_params(model)
         

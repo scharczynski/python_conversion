@@ -99,8 +99,8 @@ class Model(object):
             phip=0.5,
             phig=0.5,
             omega=0.5,
-            minstep=1e-20,
-            minfunc=1e-20,
+            minstep=1e-10,
+            minfunc=1e-10,
             maxiter=1000, #800 is arbitrary, doesn't seem to get reached
             f_ieqcons=self.pso_con
         )
