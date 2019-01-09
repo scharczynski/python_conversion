@@ -98,22 +98,25 @@ class Model(object):
             self.ub,
             phip=0.5,
             phig=0.5,
-            omega=0.5,
-            minstep=1e-10,
-            minfunc=1e-10,
+            omega=0.4,
+            minstep=1e-8,
+            minfunc=1e-8,
             maxiter=1000, #800 is arbitrary, doesn't seem to get reached
             f_ieqcons=self.pso_con
         )
-        second_pass_res = minimize(
-            self.build_function,
-            fit_pso,
-            method='L-BFGS-B',
-            bounds=self.bounds,
-            options={'disp': False}
-        )
-        self.fit = second_pass_res.x
-        self.fun = second_pass_res.fun
-        return (self.fit, self.fun)
+        # second_pass_res = minimize(
+        #     self.build_function,
+        #     fit_pso,
+        #     method='L-BFGS-B',
+        #     bounds=self.bounds,
+        #     options={'disp': False}
+        # )
+        # self.fit = second_pass_res.x
+        # self.fun = second_pass_res.fun
+        # return (self.fit, self.fun)
+        self.fit = fit_pso
+        self.fun = fun_pso
+        return(self.fit, self.fun)
 
     def build_function(self):
         """Embed model parameters in model function.
