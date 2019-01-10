@@ -98,7 +98,7 @@ class Model(object):
             self.ub,
             phip=0.5,
             phig=0.5,
-            omega=0.4,
+            omega=0.5,
             minstep=1e-8,
             minfunc=1e-8,
             maxiter=1000, #800 is arbitrary, doesn't seem to get reached
