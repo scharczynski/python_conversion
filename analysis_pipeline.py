@@ -39,7 +39,7 @@ class AnalysisPipeline(object):
 
     """
 
-    def __init__(self, cell_range, data_processor, models, subsample):
+    def __init__(self, cell_range, data_processor, models, subsample, swarm_params=None):
         self.time_start = time.time()
         self.cell_range = cell_range[:]
         self.cell_range[1] += 1
@@ -47,10 +47,23 @@ class AnalysisPipeline(object):
         self.time_info = data_processor.time_info
         self.models_to_fit = models
         self.subsample = subsample
+        if not swarm_params:
+            self.swarm_params = {
+                "phip" : 0.5,
+                "phig" : 0.5,
+                "omega" : 0.5,
+                "minstep" : 1e-8,
+                "minfunc" : 1e-8,
+                "maxiter" : 1000
+            }
+            self.swarm_params = [0.5, 0.5, 0.5, 1e-8, 1e-8, 1000]
+        else:
+            self.swarm_params = swarm_params
         self.analysis_dict = self.make_analysis()
         self.model_dict = self.make_models()
         self.subsample = subsample
         self.model_fits = None
+
 
     def make_analysis(self):
         analysis_dict = {}
@@ -74,7 +87,7 @@ class AnalysisPipeline(object):
                 model_data['conditions'] = self.analysis_dict[cell].conditions
                 model_data['spikes_pos'] = self.analysis_dict[cell].position_spikes_binned
                 model_data['pos_info'] = self.analysis_dict[cell].pos_info
-
+                model_data['swarm_params'] = self.swarm_params
                 #this creates an instance of class "model" in the module "models"
                 model_instance = getattr(models, model)(model_data)
 
@@ -97,7 +110,7 @@ class AnalysisPipeline(object):
                 # np.save("/usr3/bustaff/scharcz/workspace/fit_results/cell_" + 
                 #     str(cell) + "_" + model_instance.name + "_results_" + str(time.time()), model_instance.fit)
                 np.save("/usr3/bustaff/scharcz/workspace/fit_results/cell_" + 
-                    str(cell) + "_" + model_instance.name + "_results", model_instance.fit)
+                     str(cell) + "_" + model_instance.name + "_results", model_instance.fit)
 
     def compare_models(self, model_min, model_max):
         for cell in range(*self.cell_range):
