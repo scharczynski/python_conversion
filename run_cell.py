@@ -23,8 +23,8 @@ mean_bounds = (
     (time_info.region_high + mean_delta))
 swarm_params = {
                 "phip" : 0.5,
-                "phig" : 0.5,
-                "omega" : 0.5,
+                "phig" : 0.6,
+                "omega" : 0.6,
                 "minstep" : 1e-10,
                 "minfunc" : 1e-10,
                 "maxiter" : 1000
@@ -34,5 +34,5 @@ bounds_c = [(10**-10, 0.99)]
 pipeline = AnalysisPipeline(cell_range, data_processor, ["Const", "Time"], 0, swarm_params)
 pipeline.set_model_bounds("Time", bounds)
 pipeline.set_model_bounds("Const", bounds_c)
-pipeline.fit_all_models()
+pipeline.fit_all_models(30)
 pipeline.compare_models("Const", "Time")

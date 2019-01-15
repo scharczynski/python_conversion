@@ -102,15 +102,15 @@ class AnalysisPipeline(object):
         else:
             raise ValueError("model does not match supplied models")
 
-    def fit_all_models(self):
+    def fit_all_models(self, iterations):
         for cell in range(*self.cell_range):
             for model in self.model_dict:
                 model_instance = self.model_dict[model][cell]
-                getattr(self.analysis_dict[cell], "fit_model")(model_instance)
+                getattr(self.analysis_dict[cell], "fit_model")(model_instance, iterations)
                 # np.save("/usr3/bustaff/scharcz/workspace/fit_results/cell_" + 
                 #     str(cell) + "_" + model_instance.name + "_results_" + str(time.time()), model_instance.fit)
                 np.save("/usr3/bustaff/scharcz/workspace/fit_results/cell_" + 
-                     str(cell) + "_" + model_instance.name + "_results2", model_instance.fit)
+                     str(cell) + "_" + model_instance.name + "_results", model_instance.fit)
 
     def compare_models(self, model_min, model_max):
         for cell in range(*self.cell_range):

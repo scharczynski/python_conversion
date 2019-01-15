@@ -124,14 +124,14 @@ class AnalyzeCell(object):
         return sampled_trials
 
 
-    def fit_model(self, model):
+    def fit_model(self, model, iterations):
         print(self.cell_no)
 
         #constant models at some point got stuck in "improvement" loop
         if isinstance(model, models.Const):
             model.fit_params()
         else:
-            self.iterate_fits(model, 10)
+            self.iterate_fits(model, iterations)
         # if model.name is "time":
         #     self.save_fit_params(model)
         
