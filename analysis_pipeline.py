@@ -4,6 +4,8 @@ import time
 import matplotlib.pyplot as plt 
 from cellplot import CellPlot
 import numpy as np
+import os
+import datetime
 
 
 class AnalysisPipeline(object):
@@ -56,7 +58,6 @@ class AnalysisPipeline(object):
                 "minfunc" : 1e-8,
                 "maxiter" : 1000
             }
-            self.swarm_params = [0.5, 0.5, 0.5, 1e-8, 1e-8, 1000]
         else:
             self.swarm_params = swarm_params
         self.analysis_dict = self.make_analysis()
@@ -103,16 +104,22 @@ class AnalysisPipeline(object):
             raise ValueError("model does not match supplied models")
 
     def fit_all_models(self, iterations):
+        cell_fits = {}
         for cell in range(*self.cell_range):
+            cell_fits[cell] = {}
             for model in self.model_dict:
                 model_instance = self.model_dict[model][cell]
                 getattr(self.analysis_dict[cell], "fit_model")(model_instance, iterations)
+                cell_fits[cell][model_instance.__class__.__name__] = model_instance.fit
                 # np.save("/usr3/bustaff/scharcz/workspace/fit_results/cell_" + 
                 #     str(cell) + "_" + model_instance.name + "_results_" + str(time.time()), model_instance.fit)
-                np.save("/usr3/bustaff/scharcz/workspace/fit_results/cell_" + 
-                     str(cell) + "_" + model_instance.name + "_results", model_instance.fit)
+                # np.save("/usr3/bustaff/scharcz/workspace/fit_results/cell_" + 
+                #      str(cell) + "_" + model_instance.name + "_results", model_instance.fit)
+        np.save(os.getcwd() + "/results/cell_fits_" +
+            str(datetime.datetime.now().date()) + '_' + str(datetime.datetime.now().time()).replace(':', '.'), cell_fits)
 
     def compare_models(self, model_min, model_max):
+        outcomes = {}
         for cell in range(*self.cell_range):
             plotter = CellPlot(self.analysis_dict[cell])
             min_model = self.model_dict[model_min][cell]
@@ -120,13 +127,18 @@ class AnalysisPipeline(object):
 
             print(min_model.fit)
             print(max_model.fit)
-            print(
-                self.analysis_dict[cell].compare_models(
-                    min_model, max_model))
+            outcome = self.analysis_dict[cell].compare_models(
+                    min_model, 
+                    max_model
+            )
+            print(outcome)
+            outcomes[cell] = outcome
             plotter.plot_comparison(min_model, max_model)
             print("TIME IS")
             print(time.time() - self.time_start)
             plt.show()
+        np.save(os.getcwd() + "/results/comparison_"+model_max+"_" + model_min + 
+            "_" + str(datetime.datetime.now().date()) + '_' + str(datetime.datetime.now().time()).replace(':', '.'), outcomes)
 
     def show_condition_fit(self, model):
         for cell in range(*self.cell_range):

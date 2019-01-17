@@ -21,36 +21,37 @@ class CellPlot(object):
         if condition:
             scatter_data = np.nonzero(self.analysis.time_spikes_binned.T * self.conditions[condition])
         else:
-            scatter_data = np.nonzero(self.analysis.time_spikes_binned.T)
+            scatter_data = np.add(np.nonzero(self.analysis.time_spikes_binned.T), self.time_info.region_low)
+
         plt.scatter(scatter_data[0], scatter_data[1], c=[[0,0,0]], marker="o", s=1)
 
     def plot_cat_fit(self, model):
-        fig = plt.figure()
-        
+        fig = plt.figure()    
         num_conditions = len(model.conditions)
         fig.suptitle("cell " + str(self.cell_no))
+        fig_name = "figs/cell_%d_" + model.name + ".png"
+        plt.legend(loc="upper left")
 
         for condition in model.conditions:
             plt.subplot(2, num_conditions, condition + 1)
             plt.plot(model.region, model.expose_fit(condition), label="fit")
             plt.plot(model.region, self.smooth_spikes(self.get_model_sum(model, True)[condition]), label="spike_train")
 
-        fig_name = "figs/cell_%d_" + model.name + ".png"
-        plt.legend(loc="upper left")
-
         fig.savefig(fig_name % self.cell_no)
 
     def plot_comparison(self, model_min, model_max):
         fig = plt.figure()
         fig.suptitle("cell " + str(self.cell_no))
+        fig_name = "figs/cell_%d_" + model_min.name + "_" + model_max.name + ".png"
         plt.subplot(2,1,1)
         self.plot_fit(model_min)
         plt.plot(model_max.region, self.smooth_spikes(self.get_model_sum(model_max)), label="spike_train")
         self.plot_fit(model_max)
-        plt.legend(loc="upper left")
+        plt.legend(loc="upper right")
+
         plt.subplot(2,1,2)
         self.plot_raster()
-        fig_name = "figs/cell_%d_" + model_min.name + "_" + model_max.name + ".png"
+
         fig.savefig(fig_name % self.cell_no)
 
     def plot_fit(self, model):
@@ -76,6 +77,7 @@ class CellPlot(object):
         elif model.model_type == "time":
             if cat:
                 return self.analysis.time_spikes_summed_cat
-            return self.analysis.time_spikes_summed
+            else:
+                return self.analysis.time_spikes_summed
 
 
