@@ -108,15 +108,14 @@ class AnalyzeCell(object):
 
 
     def apply_subsample(self, spikes, sampled_trials):
+
         return spikes[sampled_trials, :]
         
     def subsample_trials(self, num_trials, subsample):
         num_trials = int(
             num_trials * subsample)
-
         if num_trials < 1:
             num_trials = 1
-
         sampled_trials = np.random.randint(
             num_trials,
             size=num_trials)
@@ -132,8 +131,6 @@ class AnalyzeCell(object):
             model.fit_params()
         else:
             self.iterate_fits(model, iterations)
-        # if model.name is "time":
-        #     self.save_fit_params(model)
         
         return model
 
@@ -164,9 +161,11 @@ class AnalyzeCell(object):
                 iteration += 1
         model.fit = params_min
         model.fun = fun_min
+
         return model
 
     def likelihood_ratio(self, llmin, llmax):
+        
         return(-2 * (llmax - llmin))
 
     def hyp_rejection(self, p_threshold, llmin, llmax, inc_params):

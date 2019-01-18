@@ -6,6 +6,7 @@ from cellplot import CellPlot
 import numpy as np
 import os
 import datetime
+import json
 
 
 class AnalysisPipeline(object):
@@ -65,7 +66,6 @@ class AnalysisPipeline(object):
         self.subsample = subsample
         self.model_fits = None
 
-
     def make_analysis(self):
         analysis_dict = {}
         for cell in range(*self.cell_range):
@@ -95,7 +95,6 @@ class AnalysisPipeline(object):
                 model_dict[model][cell] = model_instance
         return model_dict
 
-    
     def set_model_bounds(self, model, bounds):
         if model in self.model_dict:
             for cell in range(*self.cell_range):
@@ -110,13 +109,40 @@ class AnalysisPipeline(object):
             for model in self.model_dict:
                 model_instance = self.model_dict[model][cell]
                 getattr(self.analysis_dict[cell], "fit_model")(model_instance, iterations)
-                cell_fits[cell][model_instance.__class__.__name__] = model_instance.fit
-                # np.save("/usr3/bustaff/scharcz/workspace/fit_results/cell_" + 
-                #     str(cell) + "_" + model_instance.name + "_results_" + str(time.time()), model_instance.fit)
-                # np.save("/usr3/bustaff/scharcz/workspace/fit_results/cell_" + 
-                #      str(cell) + "_" + model_instance.name + "_results", model_instance.fit)
-        np.save(os.getcwd() + "/results/cell_fits_" +
-            str(datetime.datetime.now().date()) + '_' + str(datetime.datetime.now().time()).replace(':', '.'), cell_fits)
+                cell_fits[cell][model_instance.__class__.__name__] = model_instance.fit.tolist()
+        self.format_save(cell_fits)
+        # np.save(os.getcwd() + "/results/cell_fits_" +
+        #     str(datetime.datetime.now().date()) + '_' + str(datetime.datetime.now().time()).replace(':', '.'), cell_fits)
+
+    def format_save(self, fits):
+        output = fits
+
+        # for cell in fits:
+        #     output[cell] = {}
+        #     for model in fits[cell]:
+        #         output[cell][model] = 
+        #         for ind, value in enumerate(fits[cell][model]):
+        #             output[cell][model][ind] = value
+        
+        # for index, param in enumerate(model.params):
+        #     output[cell][name][param] = model.fit[index]
+                    #     'a_1' : fit[cell][model][0],
+                    #     'mu' : fit[cell][model][1],
+                    #     'sd' : fit[cell][model][2],
+                    #     'o' : fit[cell][model][3]
+        #             # }
+        # return output
+        with open(os.getcwd() + "/results/cell_fits.txt", 'a') as out:
+            json.dump(output, out)
+
+    def save_comparison(self, comp):
+        # output = {}
+        # for cell in comp:
+        #     output[cell] = {
+        #         ''
+        #     }
+        with open(os.getcwd() + "/results/model_comparisons.txt", 'a') as out:
+            json.dump(comp, out)
 
     def compare_models(self, model_min, model_max):
         outcomes = {}
@@ -124,21 +150,21 @@ class AnalysisPipeline(object):
             plotter = CellPlot(self.analysis_dict[cell])
             min_model = self.model_dict[model_min][cell]
             max_model = self.model_dict[model_max][cell]
-
             print(min_model.fit)
             print(max_model.fit)
-            outcome = self.analysis_dict[cell].compare_models(
+            outcome = str(self.analysis_dict[cell].compare_models(
                     min_model, 
                     max_model
-            )
+            ))
             print(outcome)
             outcomes[cell] = outcome
             plotter.plot_comparison(min_model, max_model)
             print("TIME IS")
             print(time.time() - self.time_start)
             plt.show()
-        np.save(os.getcwd() + "/results/comparison_"+model_max+"_" + model_min + 
-            "_" + str(datetime.datetime.now().date()) + '_' + str(datetime.datetime.now().time()).replace(':', '.'), outcomes)
+        # np.save(os.getcwd() + "/results/comparison_"+model_max+"_" + model_min + 
+        #     "_" + str(datetime.datetime.now().date()) + '_' + str(datetime.datetime.now().time()).replace(':', '.'), outcomes)
+        self.save_comparison(outcomes)
 
     def show_condition_fit(self, model):
         for cell in range(*self.cell_range):
