@@ -67,40 +67,54 @@ class AnalysisPipeline(object):
         self.model_fits = None
 
     def make_analysis(self):
-        analysis_dict = {}
-        for cell in range(*self.cell_range):
-            analysis_dict[cell] = AnalyzeCell(
-                cell, self.data_processor, self.subsample)
+        # analysis_dict = {}
+        # for cell in range(*self.cell_range):
+        #     analysis_dict[cell] = AnalyzeCell(
+        #         cell, self.data_processor, self.subsample)
+        analysis_dict = {cell:AnalyzeCell(cell, self.data_processor, self.subsample) 
+                        for cell in range(*self.cell_range)
+        }
+
         return analysis_dict
 
     def make_models(self):
-        model_dict = {}
-        for model in self.models_to_fit:
-            model_dict[model] = {}
+        model_dict = {model:{} for model in self.models_to_fit}
         for cell in range(*self.cell_range):
             for model in self.models_to_fit:
 
                 #data passed here is manually selected by what models need
                 model_data = {}
-                model_data['spikes_time'] = self.analysis_dict[cell].time_spikes_binned
-                model_data['time_info'] = self.analysis_dict[cell].time_info
-                model_data['num_trials'] = self.analysis_dict[cell].num_trials
-                model_data['conditions'] = self.analysis_dict[cell].conditions
-                model_data['spikes_pos'] = self.analysis_dict[cell].position_spikes_binned
-                model_data['pos_info'] = self.analysis_dict[cell].pos_info
+                # model_data['spikes_time'] = self.analysis_dict[cell].time_spikes_binned
+                # model_data['time_info'] = self.analysis_dict[cell].time_info
+                # model_data['num_trials'] = self.analysis_dict[cell].num_trials
+                # model_data['conditions'] = self.analysis_dict[cell].conditions
+                # model_data['spikes_pos'] = self.analysis_dict[cell].position_spikes_binned
+                # model_data['pos_info'] = self.analysis_dict[cell].pos_info
+                model_data['spikes_time'] = self.data_processor.time_spikes_binned[cell]
+                model_data['time_info'] = self.data_processor.time_info
+                model_data['num_trials'] = self.data_processor.num_trials
+                model_data['conditions'] = self.data_processor.conditions
+                # model_data['spikes_pos'] = self.data_processor.position_spikes_binned[cell]
+                # model_data['pos_info'] = self.data_processor.pos_info
                 model_data['swarm_params'] = self.swarm_params
                 #this creates an instance of class "model" in the module "models"
                 model_instance = getattr(models, model)(model_data)
-
                 model_dict[model][cell] = model_instance
+
         return model_dict
 
     def set_model_bounds(self, model, bounds):
-        if model in self.model_dict:
-            for cell in range(*self.cell_range):
-                self.model_dict[model][cell].set_bounds(bounds)
-        else:
+        # if model in self.model_dict:
+        #     for cell in range(*self.cell_range):
+        #         self.model_dict[model][cell].set_bounds(bounds)
+        try:
+            [self.model_dict[model][cell].set_bounds(bounds) 
+                for cell in range(*self.cell_range)
+                if model in self.model_dict]
+        except:
             raise ValueError("model does not match supplied models")
+        # else:
+        #     raise ValueError("model does not match supplied models")
 
     def fit_all_models(self, iterations):
         cell_fits = {}
@@ -115,60 +129,57 @@ class AnalysisPipeline(object):
         #     str(datetime.datetime.now().date()) + '_' + str(datetime.datetime.now().time()).replace(':', '.'), cell_fits)
 
     def format_save(self, fits):
-        output = fits
-
-        # for cell in fits:
-        #     output[cell] = {}
-        #     for model in fits[cell]:
-        #         output[cell][model] = 
-        #         for ind, value in enumerate(fits[cell][model]):
-        #             output[cell][model][ind] = value
-        
-        # for index, param in enumerate(model.params):
-        #     output[cell][name][param] = model.fit[index]
-                    #     'a_1' : fit[cell][model][0],
-                    #     'mu' : fit[cell][model][1],
-                    #     'sd' : fit[cell][model][2],
-                    #     'o' : fit[cell][model][3]
-        #             # }
-        # return output
-        with open(os.getcwd() + "/results/cell_fits.txt", 'a') as out:
-            json.dump(output, out)
+        try:
+            with open(os.getcwd() + "/results/cell_fits.txt") as d:
+                data = json.load(d)
+            data.update(fits)
+        except:
+            data = fits
+        with open(os.getcwd() + "/results/cell_fits.txt", 'w') as f:
+            json.dump(data, f)
+        # with open(os.getcwd()+'/results/cell_fits.pickle', 'ab') as handle:
+        #     pickle.dump(output, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     def save_comparison(self, comp):
-        # output = {}
-        # for cell in comp:
-        #     output[cell] = {
-        #         ''
-        #     }
-        with open(os.getcwd() + "/results/model_comparisons.txt", 'a') as out:
-            json.dump(comp, out)
+        try:
+            with open(os.getcwd() + "/results/model_comparisons.txt") as d:
+                data = json.load(d)
+            data.update(comp)
+        except:
+            data = comp
+        with open(os.getcwd() + "/results/model_comparisons.txt", 'w') as f:
+            json.dump(data, f)
+        # with open(os.getcwd()+'/results/model_comparisons.pickle', 'ab') as handle:
+        #     pickle.dump(comp, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    def compare_models(self, model_min, model_max):
-        outcomes = {}
-        for cell in range(*self.cell_range):
-            plotter = CellPlot(self.analysis_dict[cell])
-            min_model = self.model_dict[model_min][cell]
-            max_model = self.model_dict[model_max][cell]
-            print(min_model.fit)
-            print(max_model.fit)
-            outcome = str(self.analysis_dict[cell].compare_models(
-                    min_model, 
-                    max_model
-            ))
-            print(outcome)
-            outcomes[cell] = outcome
-            plotter.plot_comparison(min_model, max_model)
-            print("TIME IS")
-            print(time.time() - self.time_start)
-            plt.show()
+    def do_compare(self, model_min, model_max, cell):
+        plotter = CellPlot(self.analysis_dict[cell]) #possibly rewrite to create one CellPlot and pass params for plotting
+        min_model = self.model_dict[model_min][cell]
+        max_model = self.model_dict[model_max][cell]
+        print(min_model.fit)
+        print(max_model.fit)
+        outcome = str(self.analysis_dict[cell].compare_models(
+                min_model, 
+                max_model
+        ))
+        print(outcome)
+        plotter.plot_comparison(min_model, max_model)
+        print("TIME IS")
+        print(time.time() - self.time_start)
+        plt.show()
+
+        return outcome
         # np.save(os.getcwd() + "/results/comparison_"+model_max+"_" + model_min + 
         #     "_" + str(datetime.datetime.now().date()) + '_' + str(datetime.datetime.now().time()).replace(':', '.'), outcomes)
+        
+    def compare_models(self, model_min, model_max):
+        #this might be actually more verbose
+        outcomes = {cell:self.do_compare(model_min, model_max, cell) for cell in range(*self.cell_range)}
         self.save_comparison(outcomes)
 
     def show_condition_fit(self, model):
         for cell in range(*self.cell_range):
-            plotter = CellPlot(self.analysis_dict[cell])
+            plotter = CellPlot(self.analysis_dict[cell]) 
             extracted_model = self.model_fits[model][cell]
             plotter.plot_cat_fit(extracted_model)
             plt.show()

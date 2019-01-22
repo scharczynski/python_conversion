@@ -65,9 +65,7 @@ class CellPlot(object):
             avg_spikes = spikes / int(self.num_trials / self.subsample)
         else:
             avg_spikes = spikes / int(self.num_trials)
-            # avg_spikes = spikes / 2000
 
-        # return scipy.signal.savgol_filter(avg_spikes, 251, 3)
         return scipy.ndimage.filters.gaussian_filter(avg_spikes, 50)
 
     def get_model_sum(self, model, cat=0):
